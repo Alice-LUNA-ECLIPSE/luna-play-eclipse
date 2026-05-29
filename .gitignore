@@ -1,0 +1,24 @@
+# Зависимости Node.js
+node_modules/
+package-lock.json
+
+# Папки сборки Electron
+dist/
+build/
+out/
+release/
+
+# Логи
+logs/
+*.log
+error_log.txt
+
+# Системные файлы macOS / Windows
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Файлы настроек редакторов (опционально)
+.vscode/
+.idea/
+.vs/

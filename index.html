@@ -1,0 +1,2298 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Luna Play Engine v3.0 Eclipse</title>
+    <style id="custom-sub-style"></style>
+    <style>
+        :root {
+            --accent-color: #f23636;
+            --accent-glow: rgba(242, 54, 54, 0.4);
+            --lunar-bg: #0f0f12;
+            --sidebar-width: 300px;
+            --panel-bg: #141419;
+            --border-color: rgba(255, 255, 255, 0.06);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "-apple-system", BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+        }
+
+        body {
+            background: #000;
+            height: 100vh;
+            color: #fff;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .hide-cursor {
+            cursor: none !important;
+        }
+
+        .title-bar {
+            height: 35px;
+            background: #0a0a0c;
+            display: flex;
+            align-items: center;
+            padding: 0 15px;
+            font-size: 11px;
+            letter-spacing: 1px;
+            opacity: 0.6;
+            border-bottom: 1px solid var(--border-color);
+            -webkit-app-region: drag;
+            user-select: none;
+            flex-shrink: 0;
+        }
+
+        .fullscreen .title-bar {
+            display: none;
+        }
+
+        #main-app {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Сайдбар и Ресайзер */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: rgba(10, 10, 12, 0.98);
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            border-right: 1px solid var(--border-color);
+            position: relative;
+            transition: width 0.3s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s ease;
+            z-index: 100;
+        }
+
+            .sidebar.hidden {
+                width: 0;
+                padding: 0;
+                opacity: 0;
+                pointer-events: none;
+                border: none;
+            }
+
+            .sidebar.right {
+                order: 2;
+                border-right: none;
+                border-left: 1px solid var(--border-color);
+            }
+
+        .resizer {
+            position: absolute;
+            top: 0;
+            right: -3px;
+            bottom: 0;
+            width: 6px;
+            cursor: ew-resize;
+            z-index: 10;
+            background: transparent;
+            transition: 0.2s;
+        }
+
+            .resizer:hover {
+                background: rgba(255,255,255,0.05);
+            }
+
+        .sidebar.right .resizer {
+            right: auto;
+            left: -3px;
+        }
+
+        .search-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+
+            .search-row input {
+                flex: 1;
+                background: rgba(255,255,255,0.04);
+                border: 1px solid rgba(255,255,255,0.08);
+                padding: 8px 12px;
+                border-radius: 8px;
+                color: #fff;
+                outline: none;
+                font-size: 13px;
+                transition: border-color 0.2s ease, background-color 0.2s ease;
+                min-width: 0;
+            }
+
+                .search-row input:focus {
+                    border-color: var(--accent-color);
+                    background: rgba(255,255,255,0.06);
+                }
+
+        #playlist-ui {
+            list-style: none;
+            overflow-y: auto;
+            flex: 1;
+            margin-top: 5px;
+            padding-bottom: 10px;
+        }
+
+            #playlist-ui::-webkit-scrollbar {
+                width: 4px;
+            }
+
+            #playlist-ui::-webkit-scrollbar-thumb {
+                background: rgba(255,255,255,0.15);
+                border-radius: 4px;
+            }
+
+        /* Элементы плейлиста */
+        .v-item {
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 6px;
+            background: rgba(255,255,255,0.02);
+            transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1), background-color 0.2s ease, box-shadow 0.2s ease;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+            .v-item:hover {
+                background: rgba(255,255,255,0.06);
+                transform: scale(1.01);
+            }
+
+            .v-item.active {
+                background: var(--accent-color);
+                color: #fff;
+                box-shadow: 0 4px 15px var(--accent-glow);
+            }
+
+            .v-item.drag-over {
+                border-top: 2px solid var(--accent-color);
+            }
+
+        .v-item-text {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+
+        .v-item-del {
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.3);
+            cursor: pointer;
+            font-size: 13px;
+            display: none;
+            transition: color 0.2s;
+        }
+
+        .v-item:hover .v-item-del {
+            display: block;
+        }
+
+        .v-item-del:hover {
+            color: #ff4d4d;
+        }
+
+        .sidebar-btn {
+            background: transparent;
+            color: rgba(255,255,255,0.8);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 10px;
+            border-radius: 8px;
+            width: 100%;
+            margin-top: 10px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            transition: background-color 0.2s, border-color 0.2s, transform 0.1s;
+        }
+
+            .sidebar-btn:hover {
+                background: rgba(255,255,255,0.04);
+                border-color: rgba(255,255,255,0.2);
+            }
+
+            .sidebar-btn:active {
+                transform: scale(0.98);
+            }
+
+        /* ВИДЕО ЗОНА И АМБИЛАЙТ */
+        .view-zone {
+            flex: 1;
+            position: relative;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            transition: padding 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            z-index: 1;
+        }
+
+        #ambilight {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 110%;
+            height: 110%;
+            transform: translate(-50%, -50%);
+            filter: blur(80px);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.8s ease;
+            z-index: 0;
+        }
+
+        body.ambilight-on #ambilight {
+            opacity: 0.45;
+        }
+
+        /* ТОСТЫ (УВЕДОМЛЕНИЯ) */
+        .toast-container {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+        }
+
+        .toast {
+            background: #16161a;
+            color: #fff;
+            padding: 12px 18px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 500;
+            border-left: 3px solid var(--accent-color);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(120%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+
+            to {
+                transform: translateX(120%);
+                opacity: 0;
+            }
+        }
+
+        /* OSD ЦЕНТРАЛЬНЫЕ ИНДИКАТОРЫ */
+        .osd-layer {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.7);
+            background: rgba(15, 15, 18, 0.9);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 16px 28px;
+            color: #fff;
+            opacity: 0;
+            pointer-events: none;
+            transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
+            z-index: 500;
+        }
+
+            .osd-layer.show {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+
+        /* ПАНЕЛЬ УПРАВЛЕНИЯ */
+        .controls {
+            position: absolute;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%) translateY(0);
+            width: 90%;
+            max-width: 850px;
+            padding: 14px 22px;
+            border-radius: 16px;
+            background: rgba(20, 20, 25, 0.95);
+            backdrop-filter: blur(15px);
+            border: 1px solid var(--border-color);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s ease;
+        }
+
+            .controls.hide {
+                opacity: 0;
+                transform: translate(-50%, 30px);
+                pointer-events: none;
+            }
+
+        .btn-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 38px;
+        }
+
+        .btn-grp {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            height: 100%;
+        }
+
+        body.always-show-controls:not(.fullscreen) .view-zone {
+            padding-bottom: 95px;
+        }
+
+        body.always-show-controls:not(.fullscreen) .controls {
+            opacity: 1 !important;
+            transform: translateX(-50%) !important;
+            pointer-events: auto !important;
+        }
+
+        body.fullscreen .view-zone {
+            padding-bottom: 0 !important;
+        }
+
+        .icon-btn {
+            background: transparent;
+            color: #fff;
+            border: none;
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s, transform 0.1s ease, color 0.2s;
+        }
+
+            .icon-btn:hover {
+                background: rgba(255,255,255,0.06);
+            }
+
+            .icon-btn:active {
+                transform: scale(0.92);
+            }
+
+            .icon-btn.active {
+                color: var(--accent-color);
+            }
+
+            .icon-btn svg {
+                width: 18px;
+                height: 18px;
+                fill: currentColor;
+            }
+
+        #speed-btn {
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        #play-btn {
+            background: var(--accent-color);
+            border-radius: 50%;
+            width: 38px;
+            height: 38px;
+            color: #fff;
+        }
+
+            #play-btn:hover {
+                transform: scale(1.06);
+                box-shadow: 0 0 12px var(--accent-glow);
+            }
+
+            #play-btn:active {
+                transform: scale(0.94);
+            }
+
+        .timeline-box {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .timeline {
+            flex: 1;
+            height: 4px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 2px;
+            cursor: pointer;
+            position: relative;
+            transition: height 0.2s ease;
+        }
+
+            .timeline:hover {
+                height: 6px;
+            }
+
+        .prog-bar {
+            height: 100%;
+            background: var(--accent-color);
+            width: 0%;
+            border-radius: 2px;
+            position: relative;
+        }
+
+        .bookmark-marker {
+            position: absolute;
+            top: -2px;
+            width: 3px;
+            height: 10px;
+            background: #fff;
+            border-radius: 1px;
+            pointer-events: none;
+        }
+
+        .preview-box {
+            position: absolute;
+            bottom: 18px;
+            left: 0;
+            transform: translateX(-50%);
+            width: 150px;
+            background: #0a0a0c;
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 6px;
+            display: none;
+            flex-direction: column;
+            padding: 3px;
+            z-index: 2000;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.7);
+        }
+
+            .preview-box video {
+                width: 100%;
+                border-radius: 4px;
+            }
+
+        #p-time-lbl {
+            font-size: 11px;
+            margin-top: 3px;
+            text-align: center;
+        }
+
+        input[type="range"] {
+            accent-color: var(--accent-color);
+            cursor: pointer;
+        }
+
+        /* МОДАЛЬНОЕ ОКНО URL */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+            .modal-overlay.show {
+                display: flex;
+                opacity: 1;
+            }
+
+        .modal-box {
+            background: var(--panel-bg);
+            padding: 20px;
+            border-radius: 14px;
+            border: 1px solid var(--border-color);
+            width: 360px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.8);
+            transform: translateY(15px);
+            transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        .modal-overlay.show .modal-box {
+            transform: translateY(0);
+        }
+
+        .modal-box h3 {
+            margin-bottom: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            opacity: 0.9;
+        }
+
+        .modal-box input {
+            width: 100%;
+            padding: 10px;
+            background: rgba(0,0,0,0.3);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px;
+            margin-bottom: 16px;
+            outline: none;
+            font-size: 13px;
+        }
+
+            .modal-box input:focus {
+                border-color: var(--accent-color);
+            }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
+        /* ОКНА НАСТРОЕК (МИНМАЛИСТИЧНЫЙ ДИЗАЙН С ЭФФЕКТОМ SPRING) */
+        .settings-window {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 540px;
+            height: 440px;
+            background: var(--lunar-bg);
+            border-radius: 16px;
+            z-index: 5000;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+            opacity: 0;
+            pointer-events: none;
+            transform: translate(-50%, -48%) scale(0.96);
+            transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s ease;
+            display: flex;
+        }
+
+            .settings-window.show {
+                opacity: 1;
+                pointer-events: auto;
+                transform: translate(-50%, -50%) scale(1);
+            }
+
+        .s-sidebar {
+            width: 140px;
+            background: rgba(0,0,0,0.15);
+            padding: 15px 10px;
+            border-right: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+            .s-sidebar div {
+                font-size: 12px;
+                margin-bottom: 4px;
+                cursor: pointer;
+                opacity: 0.6;
+                transition: all 0.2s ease;
+                padding: 8px 10px;
+                border-radius: 6px;
+                user-select: none;
+            }
+
+                .s-sidebar div:hover {
+                    background: rgba(255,255,255,0.03);
+                    opacity: 0.9;
+                }
+
+                .s-sidebar div.active {
+                    opacity: 1;
+                    background: rgba(255,255,255,0.05);
+                    color: var(--accent-color);
+                    font-weight: 600;
+                }
+
+        .s-main {
+            flex: 1;
+            padding: 15px 20px;
+            overflow-y: auto;
+        }
+
+            .s-main::-webkit-scrollbar {
+                display: none;
+            }
+
+        .tab-pane {
+            display: none;
+        }
+
+            .tab-pane.active {
+                display: block;
+            }
+
+        /* Улучшенная интерактивная строка настроек */
+        .setting-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 10px;
+            margin: 0 -10px;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            cursor: pointer;
+            border-radius: 8px;
+            transition: background-color 0.15s ease;
+        }
+
+            .setting-row:hover {
+                background-color: rgba(255, 255, 255, 0.02);
+            }
+
+            .setting-row:last-child {
+                border-bottom: none;
+            }
+
+        .setting-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            padding-right: 15px;
+            flex: 1;
+            pointer-events: none; /* Клик проходит сквозь инфо на саму строку */
+        }
+
+        .setting-title {
+            font-size: 13px;
+            font-weight: 500;
+            color: rgba(255,255,255,0.95);
+        }
+
+        .setting-desc {
+            font-size: 11px;
+            color: rgba(255,255,255,0.4);
+            line-height: 1.3;
+        }
+
+        /* Минималистичные правые интерактивные элементы */
+        .setting-action-text {
+            font-size: 13px;
+            color: rgba(255,255,255,0.4);
+            white-space: nowrap;
+            user-select: none;
+            pointer-events: none;
+        }
+
+        /* Скрытые нативные селекторы над текстом для сохранения логики */
+        .select-wrapper {
+            position: relative;
+        }
+
+            .select-wrapper select {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                opacity: 0;
+                cursor: pointer;
+            }
+
+        /* Переключатели-свитчи */
+        .toggle-switch {
+            position: relative;
+            width: 36px;
+            height: 18px;
+            flex-shrink: 0;
+            pointer-events: none;
+        }
+
+            .toggle-switch input {
+                opacity: 0;
+                width: 0;
+                height: 0;
+            }
+
+        .toggle-slider {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255,255,255,0.08);
+            transition: .3s cubic-bezier(0.25, 1, 0.5, 1);
+            border-radius: 20px;
+        }
+
+            .toggle-slider:before {
+                position: absolute;
+                content: "";
+                height: 14px;
+                width: 14px;
+                left: 2px;
+                bottom: 2px;
+                background-color: #b3b3b3;
+                transition: .3s cubic-bezier(0.25, 1, 0.5, 1);
+                border-radius: 50%;
+            }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background-color: var(--accent-color);
+        }
+
+            .toggle-switch input:checked + .toggle-slider:before {
+                transform: translateX(18px);
+                background-color: #fff;
+            }
+
+        /* Хоткеи */
+        .hk-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            font-size: 13px;
+        }
+
+            .hk-row span {
+                color: rgba(255,255,255,0.8);
+            }
+
+        .hk-btn {
+            background: rgba(255,255,255,0.04);
+            color: var(--accent-color);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 6px;
+            padding: 4px 10px;
+            cursor: pointer;
+            min-width: 75px;
+            font-size: 11px;
+            font-family: monospace;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+            .hk-btn.listening {
+                background: var(--accent-color);
+                color: #fff;
+                box-shadow: 0 0 8px var(--accent-glow);
+            }
+
+        /* Эквалайзер */
+        .eq-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            height: 100px;
+            background: rgba(255,255,255,0.01);
+            padding: 12px 10px;
+            border-radius: 10px;
+            margin-top: 10px;
+            border: 1px solid rgba(255,255,255,0.02);
+        }
+
+        .eq-band {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+            .eq-band input[type="range"] {
+                -webkit-appearance: slider-vertical;
+                height: 55px;
+                width: 12px;
+            }
+
+            .eq-band span {
+                font-size: 9px;
+                opacity: 0.4;
+            }
+
+        .fx-reset-btn {
+            background: none;
+            border: none;
+            color: var(--accent-color);
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 600;
+            margin-top: 12px;
+            text-transform: uppercase;
+            transition: opacity 0.2s;
+        }
+
+            .fx-reset-btn:hover {
+                opacity: 0.8;
+            }
+
+        /* Общие заголовки секций в настройках */
+        .section-title {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--accent-color);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            margin-top: 5px;
+        }
+
+        /* --- НОВЫЕ ФУТУРИСТИЧНЫЕ СТИЛИ ДЛЯ ВКЛАДКИ "О ПО" --- */
+        .sys-info-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100%;
+            padding: 5px 10px 10px 10px;
+            gap: 16px;
+        }
+
+        .sys-logo-area {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Крупный анимированный логотип с неоновым свечением */
+        .sys-neon-logo {
+            font-size: 42px;
+            filter: drop-shadow(0 0 12px var(--accent-color));
+            animation: pulse-glow 3s infinite ease-in-out;
+            user-select: none;
+        }
+
+        .sys-info-title {
+            color: #fff;
+            font-size: 16px;
+            font-weight: 800;
+            letter-spacing: 3px;
+            text-shadow: 0 0 10px var(--accent-glow);
+            font-family: monospace, sans-serif;
+            margin-bottom: 0;
+        }
+
+        /* Контейнер для карточек */
+        .sys-cards-grid {
+            display: flex;
+            gap: 12px;
+            width: 100%;
+        }
+
+        /* Стеклянные карточки (Glassmorphism) */
+        .sys-glass-card {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 12px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .card-header {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--accent-color);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            padding-bottom: 4px;
+            margin-bottom: 2px;
+        }
+
+        .card-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+            .card-row span:last-child {
+                font-weight: 600;
+                color: #fff;
+            }
+
+        /* Соцсети и ссылки */
+        .sys-links-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 2px;
+        }
+
+        .sys-link-btn {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            color: rgba(255, 255, 255, 0.6);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+            .sys-link-btn:hover {
+                background: var(--accent-color);
+                color: #fff;
+                border-color: transparent;
+                box-shadow: 0 0 10px var(--accent-glow);
+                transform: translateY(-1px);
+            }
+
+        /* Подвал */
+        .sys-footer {
+            text-align: center;
+            margin-top: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            padding-top: 15px;
+        }
+
+        .sys-license-text {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.3);
+            max-width: 320px;
+            line-height: 1.3;
+            margin: 0 auto;
+        }
+
+        .sys-copyright {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.2);
+            font-family: monospace;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% {
+                filter: drop-shadow(0 0 8px var(--accent-glow));
+                transform: scale(1);
+            }
+
+            50% {
+                filter: drop-shadow(0 0 18px var(--accent-color));
+                transform: scale(1.03);
+            }
+        }
+    </style>
+</head>
+<body oncontextmenu="return handleContextMenu(event)">
+
+    <script>const { ipcRenderer } = require('electron');
+
+        function sendErrorToMain(msg, stack) {
+            try {
+                if (ipcRenderer) {
+                    ipcRenderer.send('log-error', { message: msg, stack: stack });
+                }
+            } catch (e) {
+                console.error("Critical IPC Logger failure:", e);
+            }
+        }
+
+        window.onerror = function(message, source, lineno, colno, error) {
+            const stack = error ? error.stack : `at ${source}:${lineno}:${colno}`;
+            sendErrorToMain(message, stack);
+            return false;
+        };
+
+        window.addEventListener('unhandledrejection', function(event) {
+            const reason = event.reason;
+            const message = reason instanceof Error ? reason.message : String(reason);
+            const stack = reason instanceof Error ? reason.stack : 'N/A';
+            sendErrorToMain(`Unhandled Rejection: ${message}`, stack);
+        });
+
+        // Слушатели очистки кэша
+        if (ipcRenderer) {
+            ipcRenderer.on('clear-cache-success', () => {
+                showToast('toastCacheSuccess');
+            });
+            ipcRenderer.on('clear-cache-error', (e, errMsg) => {
+                let msg = i18n[currentLang].toastSysErr;
+                const container = document.getElementById('toast-container');
+                let toast = document.createElement('div'); toast.className = 'toast';
+                toast.innerText = msg + ": " + errMsg;
+                container.appendChild(toast);
+                setTimeout(() => { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 2800);
+            });
+        }</script>
+
+    <div class="title-bar" id="t-bar">LUNA PLAY ENGINE v3.0 • ECLIPSE</div>
+
+    <div id="url-modal" class="modal-overlay" onclick="closeUrlModal()">
+        <div class="modal-box" onclick="event.stopPropagation()">
+            <h3 data-i18n="toolNet">Сетевой поток (URL)</h3>
+            <input type="text" id="url-input" placeholder="https://..." autocomplete="off">
+            <div class="modal-buttons">
+                <button class="hk-btn" onclick="closeUrlModal()" style="min-width: 70px;" data-i18n="btnCancel">Отмена</button>
+                <button class="hk-btn" onclick="submitUrlModal()" style="min-width: 80px; background: var(--accent-color); color: #fff;" data-i18n="btnLoad">Загрузить</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="main-app">
+        <div class="sidebar" id="sidebar">
+            <div class="resizer" id="sidebar-resizer"></div>
+
+            <div class="search-row">
+                <input type="text" id="s-input" placeholder="Поиск..." data-i18n-ph="search" oninput="renderPlaylist(this.value)">
+                <button class="icon-btn" onclick="addNetworkStream()" title="Открыть URL" data-i18n-title="toolNet" style="background: rgba(255,255,255,0.03);">
+                    <svg viewBox="0 0 24 24"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z" /></svg>
+                </button>
+                <button class="icon-btn" onclick="toggleSort()" id="sort-btn" title="Сортировка" data-i18n-title="toolSort" style="background: rgba(255,255,255,0.03);">
+                    <svg viewBox="0 0 24 24"><path d="M3 18h6v-2H3v2zM3 6v2h18V6H3zm0 7h12v-2H3v2z" /></svg>
+                </button>
+            </div>
+            <ul id="playlist-ui"></ul>
+            <button class="sidebar-btn" onclick="document.getElementById('f-in').click()" data-i18n="openFiles">ОТКРЫТЬ ФАЙЛЫ</button>
+            <input type="file" id="f-in" style="display:none" multiple onchange="importFiles(event)">
+        </div>
+
+        <div class="view-zone" id="drop-zone" onclick="closeSettings()">
+            <canvas id="ambilight"></canvas>
+            <video id="player" crossorigin="anonymous"></video>
+
+            <div class="osd-layer" id="osd"><span id="osd-val"></span></div>
+            <div class="toast-container" id="toast-container"></div>
+
+            <div class="controls" id="controls" onclick="event.stopPropagation()">
+                <div class="timeline-box">
+                    <span id="c-time" style="font-size:11px; opacity:0.5; width:35px; text-align: center;">0:00</span>
+                    <div class="timeline" id="t-line" onmousedown="seekDrag(event)">
+                        <div class="prog-bar" id="prog"></div>
+                        <div id="bookmarks-layer"></div>
+                        <div class="preview-box" id="p-box">
+                            <video id="p-vid" muted preload="auto"></video>
+                            <div id="p-time-lbl">0:00</div>
+                        </div>
+                    </div>
+                    <span id="d-time" style="font-size:11px; opacity:0.5; width:35px; text-align: center;">0:00</span>
+                </div>
+
+                <div class="btn-row">
+                    <div class="btn-grp">
+                        <button class="icon-btn" onclick="seek(-engineCfg.seekStep)"><svg viewBox="0 0 24 24"><path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z" /></svg></button>
+                        <button class="icon-btn" id="play-btn" onclick="togglePlay()"><svg viewBox="0 0 24 24" id="play-svg"><path d="M8 5v14l11-7z" /></svg></button>
+                        <button class="icon-btn" onclick="seek(engineCfg.seekStep)"><svg viewBox="0 0 24 24"><path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z" /></svg></button>
+                        <button class="icon-btn" onclick="nextV()"><svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" /></svg></button>
+                        <button class="icon-btn" onclick="skipOpening()" title="Пропуск заставки (+1:30)" data-i18n-title="toolSkip">
+                            <svg viewBox="0 0 24 24"><path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6zM20 6h-2v12h2V6z" /></svg>
+                        </button>
+                    </div>
+
+                    <div class="btn-grp">
+                        <button class="icon-btn" id="speed-btn" onclick="toggleSpeed()" title="Скорость воспроизведения" data-i18n-title="toolSpeed">1x</button>
+                        <button class="icon-btn" id="shuffle-btn" onclick="toggleShuffle()"><svg viewBox="0 0 24 24"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z" /></svg></button>
+                        <button class="icon-btn" id="repeat-btn" onclick="toggleRepeat()"><svg viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z" /></svg></button>
+
+                        <button class="icon-btn" id="screenshot-btn" onclick="takeScreenshot()" title="Скриншот" data-i18n-title="toolScreen">
+                            <svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" /></svg>
+                        </button>
+                        <button class="icon-btn" id="pip-btn" onclick="togglePiP()" title="Картинка в картинке" data-i18n-title="toolPip">
+                            <svg viewBox="0 0 24 24"><path d="M19 11h-8v6h8v-6zm4 8V4.98C23 3.88 22.1 3 21 3H3c-1.1 0-2 .88-2 1.98V19c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2zm-2 .02H3V4.97h18v14.05z" /></svg>
+                        </button>
+                        <button class="icon-btn" id="pin-btn" onclick="togglePin()" title="Поверх всех окон" data-i18n-title="toolPin">
+                            <svg viewBox="0 0 24 24"><path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z" /></svg>
+                        </button>
+                    </div>
+
+                    <div class="btn-grp" style="background:rgba(255,255,255,0.04); padding:2px 8px; border-radius:8px;" title="Усиление звука" data-i18n-title="toolVol">
+                        <button class="icon-btn" id="m-btn" onclick="toggleMute()" style="width:22px;"><svg viewBox="0 0 24 24" id="vol-svg"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z" /></svg></button>
+                        <input type="range" id="v-slider" min="0" max="3" step="0.05" oninput="changeVol(this.value, true)" style="width:55px;">
+                    </div>
+
+                    <button class="icon-btn" onclick="toggleSettings()"><svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" /></svg></button>
+                </div>
+            </div>
+
+            <div class="settings-window" id="s-window" onclick="event.stopPropagation()">
+                <div class="s-content" style="display:flex; width:100%; height:100%;">
+                    <div class="s-sidebar">
+                        <div onclick="openTab('play')" id="t-play" class="active" data-i18n="tabPlay">Плеер</div>
+                        <div onclick="openTab('media')" id="t-media" data-i18n="tabMedia">Медиа</div>
+                        <div onclick="openTab('fx')" id="t-fx" data-i18n="tabFx">Эффекты</div>
+                        <div onclick="openTab('per')" id="t-per" data-i18n="tabStyle">Стиль</div>
+                        <div onclick="openTab('scr')" id="t-scr" data-i18n="tabScreen">Экран</div>
+                        <div onclick="openTab('keys')" id="t-keys" data-i18n="tabHotkeys">Горячие клавиши</div>
+                        <div onclick="openTab('sys')" id="t-sys" data-i18n="tabSys">О ПО</div>
+                    </div>
+                    <div class="s-main">
+
+                        <div id="p-play" class="tab-pane active">
+                            <div class="section-title" data-i18n="tabPlay">Плеер</div>
+
+                            <div class="setting-row" onclick="triggerRowClick(this)">
+                                <div class="setting-info">
+                                    <div class="setting-title" data-i18n="language">Язык интерфейса</div>
+                                    <div class="setting-desc">Language of UI</div>
+                                </div>
+                                <div class="select-wrapper">
+                                    <div class="setting-action-text" id="lbl-lang">Русский ></div>
+                                    <select id="cfg-lang" onchange="applyCfg()" onclick="event.stopPropagation()">
+                                        <option value="ru">Русский</option>
+                                        <option value="en">English</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="setting-row" onclick="triggerRowClick(this)">
+                                <div class="setting-info">
+                                    <div class="setting-title" data-i18n="cfgSeek">Шаг перемотки</div>
+                                    <div class="setting-desc">Интервал пропуска секунд при стрелках</div>
+                                </div>
+                                <div class="select-wrapper">
+                                    <div class="setting-action-text" id="lbl-seek">10 сек ></div>
+                                    <select id="cfg-seek" onchange="applyCfg()" onclick="event.stopPropagation()">
+                                        <option value="5">5 сек</option>
+                                        <option value="10">10 сек</option>
+                                        <option value="30">30 сек</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="setting-row" onclick="triggerRowClick(this)">
+                                <div class="setting-info">
+                                    <div class="setting-title" data-i18n="cfgDevice">Аудио-пауза</div>
+                                    <div class="setting-desc">Пауза при отключении наушников/колонок</div>
+                                </div>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="cfg-device" onchange="applyCfg()"><span class="toggle-slider"></span>
+                                </div>
+                            </div>
+
+                            <div class="setting-row" onclick="triggerRowClick(this)">
+                                <div class="setting-info">
+                                    <div class="setting-title" data-i18n="cfgDiscord">Discord RPC</div>
+                                    <div class="setting-desc">Показывать статус воспроизведения в Discord</div>
+                                </div>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="cfg-discord" onchange="applyCfg()"><span class="toggle-slider"></span>
+                                </div>
+                            </div>
+
+                            <div class="setting-row" onclick="triggerRowClick(this)">
+                                <div class="setting-info">
+                                    <div class="setting-title" data-i18n="cfgDiscordStream">Режим стримера Discord</div>
+                                    <div class="setting-desc">Исправляет звук при демонстрации экрана</div>
+                                </div>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="cfg-discord-stream" onchange="applyCfg()"><span class="toggle-slider"></span>
+                                </div>
+                            </div>
+
+                            <div class="setting-row" style="margin-top: 10px; border-top: 1px dashed rgba(255,255,255,0.05); padding-top: 15px;" onclick="clearAppCache()">
+                                <div class="setting-info">
+                                    <div class="setting-title" style="color: #ff4d4d;" data-i18n="clearCacheTitle">Очистить кэш приложения</div>
+                                    <div class="setting-desc">Сбросить буфер сетевых потоков и временные файлы</div>
+                                </div>
+                                <div class="setting-action-text" style="color: #ff4d4d;" data-i18n="clearCacheBtn">Сброс ></div>
+                            </div>
+                        </div>
+
+                        <div id="p-media" class="tab-pane">
+                            <div class="section-title" data-i18n="tabMedia">Медиа</div>
+
+                            <div class="setting-row" onclick="triggerRowClick(this)">
+                                <div class="setting-info">
+                                    <div class="setting-title" data-i18n="cfgFormat">Режим всеядности</div>
+                                    <div class="setting-desc">Игнорировать внутренние проверки контейнеров</div>
+                                </div>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="cfg-format" onchange="applyCfg()"><span class="toggle-slider"></span>
+                                </div>
+                            </div>
+
+                            <div class="setting-row" onclick="triggerRowClick(this)">
+                                <div class="setting-info">
+                                    <div class="setting-title" data-i18n="audioTrack">Аудиодорожка</div>
+                                    <div class="setting-desc">Выбор звукового канала</div>
+                                </div>
+                                <div class="select-wrapper">
+                                    <div class="setting-action-text" id="lbl-audio">Default ></div>
+                                    <select id="cfg-audio" onchange="changeAudioTrack(this.value); applyCfg()" onclick="event.stopPropagation()"><option value="-1">-</option></select>
+                                </div>
+                            </div>
+
+                            <div class="setting-row" onclick="triggerRowClick(this)">
+                                <div class="setting-info">
+                                    <div class="setting-title" data-i18n="subTrack">Субтитры</div>
+                                    <div class="setting-desc">Выбор встроенной дорожки субтитров</div>
+                                </div>
+                                <div class="select-wrapper">
+                                    <div class="setting-action-text" id="lbl-sub">Off ></div>
+                                    <select id="cfg-sub" onchange="changeSubTrack(this.value); applyCfg()" onclick="event.stopPropagation()"><option value="-1">-</option></select>
+                                </div>
+                            </div>
+
+                            <div class="setting-row" onclick="document.getElementById('sub-in').click()">
+                                <div class="setting-info">
+                                    <div class="setting-title" data-i18n="toolLoadSub">Внешние субтитры</div>
+                                    <div class="setting-desc">Загрузить локальный файл (.vtt, .srt)</div>
+                                </div>
+                                <div class="setting-action-text">Открыть ></div>
+                                <input type="file" id="sub-in" style="display:none" accept=".vtt,.srt" onchange="loadExternalSubtitle(event)" onclick="event.stopPropagation()">
+                            </div>
+
+                            <div class="section-title" style="margin-top:15px;" data-i18n="subSettings">Настройка титров</div>
+
+                            <div class="setting-row" onclick="triggerRowClick(this)">
+                                <div class="setting-info">
+                                    <div class="setting-title" data-i18n="cfgSubBg">Фон субтитров</div>
+                                    <div class="setting-desc">Добавить контрастную темную подложку</div>
+                                </div>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="cfg-sub-bg" onchange="applyCfg()"><span class="toggle-slider"></span>
+                                </div>
+                            </div>
+
+                            <div class="setting-row" onclick="triggerRowClick(this)">
+                                <div class="setting-info">
+                                    <div class="setting-title" data-i18n="cfgSubSize">Размер текста титров</div>
+                                    <div class="setting-desc">Масштабирование шрифта</div>
+                                </div>
+                                <div class="select-wrapper">
+                                    <div class="setting-action-text" id="lbl-sub-size">Нормальный ></div>
+                                    <select id="cfg-sub-size" onchange="applyCfg()" onclick="event.stopPropagation()">
+                                        <option value="0.8em" data-i18n="sizeSmall">Мелкий</option>
+                                        <option value="1em" data-i18n="sizeNormal">Нормальный</option>
+                                        <option value="1.3em" data-i18n="sizeLarge">Крупный</option>
+                                        <option value="1.6em" data-i18n="sizeHuge">Очень крупный</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="setting-row" style="margin-top:10px;" onclick="clearBookmarks()">
+                                <div class="setting-info">
+                                    <div class="setting-title" data-i18n="btnClearBkm">Закладки видео</div>
+                                    <div class="setting-desc">Стереть сохраненные точки на таймлайне</div>
+                                </div>
+                                <div class="setting-action-text" style="color: var(--accent-color);">Очистить ></div>
+                            </div>
+                        </div>
+
+                        <div id="p-fx" class="tab-pane">
+                            <div class="section-title" data-i18n="tabFx">Эффекты</div>
+
+                            <div class="setting-row" onclick="triggerRowClick(this)">
+                                <div class="setting-info">
+                                    <div class="setting-title" data-i18n="cfgAmbilight">Свечение Ambilight</div>
+                                    <div class="setting-desc">Динамическая подсветка за границами видео</div>
+                                </div>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="cfg-ambilight" onchange="applyCfg()"><span class="toggle-slider"></span>
+                                </div>
+                            </div>
+
+                            <div class="section-title" style="margin-top:15px;" data-i18n="fxAudio">Эквалайзер</div>
+                            <div class="eq-container">
+                                <div class="eq-band"><input type="range" class="eq-sl" min="-12" max="12" step="0.1" value="0" oninput="applyFx()"><span>32</span></div>
+                                <div class="eq-band"><input type="range" class="eq-sl" min="-12" max="12" step="0.1" value="0" oninput="applyFx()"><span>64</span></div>
+                                <div class="eq-band"><input type="range" class="eq-sl" min="-12" max="12" step="0.1" value="0" oninput="applyFx()"><span>125</span></div>
+                                <div class="eq-band"><input type="range" class="eq-sl" min="-12" max="12" step="0.1" value="0" oninput="applyFx()"><span>250</span></div>
+                                <div class="eq-band"><input type="range" class="eq-sl" min="-12" max="12" step="0.1" value="0" oninput="applyFx()"><span>500</span></div>
+                                <div class="eq-band"><input type="range" class="eq-sl" min="-12" max="12" step="0.1" value="0" oninput="applyFx()"><span>1K</span></div>
+                                <div class="eq-band"><input type="range" class="eq-sl" min="-12" max="12" step="0.1" value="0" oninput="applyFx()"><span>2K</span></div>
+                                <div class="eq-band"><input type="range" class="eq-sl" min="-12" max="12" step="0.1" value="0" oninput="applyFx()"><span>4K</span></div>
+                                <div class="eq-band"><input type="range" class="eq-sl" min="-12" max="12" step="0.1" value="0" oninput="applyFx()"><span>8K</span></div>
+                                <div class="eq-band"><input type="range" class="eq-sl" min="-12" max="12" step="0.1" value="0" oninput="applyFx()"><span>16K</span></div>
+                            </div>
+                            <button class="fx-reset-btn" onclick="resetEq()" data-i18n="fxReset">Сбросить эквалайзер</button>
+                        </div>
+
+                        <div id="p-per" class="tab-pane">
+                            <div class="section-title" data-i18n="tabStyle">Интерфейс и стиль</div>
+
+                            <div class="setting-row" onclick="triggerRowClick(this)">
+                                <div class="setting-info">
+                                    <div class="setting-title" data-i18n="cfgOsd">OSD индикаторы</div>
+                                    <div class="setting-desc">Центральные графические уведомления на экране</div>
+                                </div>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="cfg-osd" onchange="applyCfg()"><span class="toggle-slider"></span>
+                                </div>
+                            </div>
+
+                            <div class="setting-row" onclick="document.getElementById('cfg-color').click()">
+                                <div class="setting-info">
+                                    <div class="setting-title" data-i18n="colorAccent">Цвет акцента</div>
+                                    <div class="setting-desc">Основной цвет элементов управления</div>
+                                </div>
+                                <input type="color" id="cfg-color" onchange="applyCfg()" style="width:40px; height:24px; border:none; background:none; cursor:pointer;" onclick="event.stopPropagation()">
+                            </div>
+
+                            <div class="setting-row" onclick="triggerRowClick(this)">
+                                <div class="setting-info">
+                                    <div class="setting-title" data-i18n="videoList">Список видео</div>
+                                    <div class="setting-desc">Расположение панели плейлиста</div>
+                                </div>
+                                <div class="select-wrapper">
+                                    <div class="setting-action-text" id="lbl-side">Слева ></div>
+                                    <select id="cfg-side" onchange="applyCfg()" onclick="event.stopPropagation()">
+                                        <option value="left" data-i18n="sideLeft">Слева</option>
+                                        <option value="right" data-i18n="sideRight">Справа</option>
+                                        <option value="hide" data-i18n="sideHide">Скрыть</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="p-scr" class="tab-pane">
+                            <div class="section-title" data-i18n="tabScreen">Режимы экрана</div>
+
+                            <div class="setting-row" onclick="triggerRowClick(this)">
+                                <div class="setting-info">
+                                    <div class="setting-title" data-i18n="cfgAlways">Постоянная панель</div>
+                                    <div class="setting-desc">Нижний бар не перекрывает кадр в оконном режиме</div>
+                                </div>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="cfg-always-controls" onchange="applyCfg()"><span class="toggle-slider"></span>
+                                </div>
+                            </div>
+
+                            <div class="setting-row" onclick="setScreen('window')">
+                                <div class="setting-info">
+                                    <div class="setting-title" data-i18n="windowMode">Оконный режим</div>
+                                    <div class="setting-desc">Выйти из полноэкранного формата</div>
+                                </div>
+                                <div class="setting-action-text">Переключить ></div>
+                            </div>
+
+                            <div class="setting-row" onclick="setScreen('full')">
+                                <div class="setting-info">
+                                    <div class="setting-title" data-i18n="fullMode">Полноэкранный режим</div>
+                                    <div class="setting-desc">Развернуть плеер во весь монитор</div>
+                                </div>
+                                <div class="setting-action-text">Развернуть ></div>
+                            </div>
+                        </div>
+
+                        <div id="p-keys" class="tab-pane">
+                            <div class="section-title" data-i18n="tabHotkeys">Горячие клавиши</div>
+
+                            <div class="setting-row" onclick="triggerRowClick(this)">
+                                <div class="setting-info">
+                                    <div class="setting-title" data-i18n="cfgWheel">Колёсико мыши</div>
+                                    <div class="setting-desc">Регулировка звука скроллом по экрану</div>
+                                </div>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="cfg-wheel" onchange="applyCfg()"><span class="toggle-slider"></span>
+                                </div>
+                            </div>
+
+                            <div class="hk-row"><span data-i18n="hkPlay">Воспроизведение / Пауза</span><button class="hk-btn" id="hk-play" onclick="listenKey('play')">Space</button></div>
+                            <div class="hk-row"><span data-i18n="hkFwd">Перемотка вперед</span><button class="hk-btn" id="hk-fwd" onclick="listenKey('fwd')">→</button></div>
+                            <div class="hk-row"><span data-i18n="hkBwd">Перемотка назад</span><button class="hk-btn" id="hk-bwd" onclick="listenKey('bwd')">←</button></div>
+                            <div class="hk-row"><span data-i18n="hkVolUp">Громкость +</span><button class="hk-btn" id="hk-volUp" onclick="listenKey('volUp')">↑</button></div>
+                            <div class="hk-row"><span data-i18n="hkVolDown">Громкость -</span><button class="hk-btn" id="hk-volDown" onclick="listenKey('volDown')">↓</button></div>
+                            <div class="hk-row"><span data-i18n="hkMute">Вкл / Выкл звук</span><button class="hk-btn" id="hk-mute" onclick="listenKey('mute')">M</button></div>
+                            <div class="hk-row"><span data-i18n="hkFull">Полноэкранный режим</span><button class="hk-btn" id="hk-full" onclick="listenKey('full')">F</button></div>
+                            <div class="hk-row"><span data-i18n="hkMark">Умная закладка на таймлайн</span><button class="hk-btn" id="hk-mark" onclick="listenKey('mark')">B</button></div>
+                            <div class="hk-row"><span data-i18n="hkClearBkm">Удалить закладки с видео</span><button class="hk-btn" id="hk-clearBkm" onclick="listenKey('clearBkm')"></button></div>
+                            <div class="hk-row"><span data-i18n="hkScreen">Скриншот экрана</span><button class="hk-btn" id="hk-screen" onclick="listenKey('screen')">C</button></div>
+                            <div class="hk-row"><span data-i18n="hkSkip">Пропуск Опенинга (+1:30)</span><button class="hk-btn" id="hk-skip" onclick="listenKey('skip')">O</button></div>
+                        </div>
+
+                        <div id="p-sys" class="tab-pane">
+                            <div class="sys-info-container">
+
+                                <div class="sys-logo-area">
+                                    <div class="sys-neon-logo">🌙</div>
+                                    <div class="sys-info-title">LUNA PLAY ECLIPSE</div>
+                                </div>
+
+                                <div class="sys-cards-grid">
+
+                                    <div class="sys-glass-card">
+                                        <div class="card-header">Статус систем</div>
+                                        <div class="card-row"><span>Ядро движка:</span><span>Active</span></div>
+                                        <div class="card-row"><span>Ambilight:</span><span id="info-status-amb">Выкл</span></div>
+                                        <div class="card-row"><span>Audio API:</span><span id="info-status-audio">WebAudio</span></div>
+                                        <div class="card-row"><span>Discord RPC:</span><span id="info-status-rpc">Выкл</span></div>
+                                    </div>
+
+                                    <div class="sys-glass-card">
+                                        <div class="card-header">Статистика</div>
+                                        <div class="card-row"><span>Файлов в списке:</span><span id="info-stat-tracks">0</span></div>
+                                        <div class="card-row"><span>Текущая громкость:</span><span id="info-stat-vol">70%</span></div>
+                                        <div class="card-row"><span>Язык системы:</span><span id="info-stat-lang">RU</span></div>
+                                        <div class="card-row"><span>Режим повтора:</span><span id="info-stat-repeat">Выкл</span></div>
+                                    </div>
+
+                                </div>
+
+                                <div class="sys-links-row">
+                                    <a class="sys-link-btn" onclick="require('electron').shell.openExternal('https://github.com')">GitHub</a>
+                                    <a class="sys-link-btn" onclick="require('electron').shell.openExternal('https://discord.com')">Community</a>
+                                    <a class="sys-link-btn" onclick="showToast('toastSettings')">Updates</a>
+                                </div>
+
+                                <div class="sys-footer">
+                                    <div class="sys-license-text">
+                                        Данное программное обеспечение распространяется на условиях свободной лицензии MIT. Вы можете модифицировать и использовать код плеера в личных целях.
+                                    </div>
+                                    <div class="sys-copyright">
+                                        Сборка: Версия 3.0 (Build 8.5) от 29.05.2026<br>
+                                        Разработчик: Alice_LUNA_Eclipse. Все права защищены.<br>
+                                        Лицензия: MIT License
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>const v = document.getElementById('player');
+        const pVid = document.getElementById('p-vid');
+        const ui = document.getElementById('playlist-ui');
+        const prog = document.getElementById('prog');
+        const sWin = document.getElementById('s-window');
+        const tLine = document.getElementById('t-line');
+        const pBox = document.getElementById('p-box');
+        const pTimeLbl = document.getElementById('p-time-lbl');
+        const sidebarResizer = document.getElementById('sidebar-resizer');
+
+        const osd = document.getElementById('osd');
+        const osdVal = document.getElementById('osd-val');
+        const ambCtx = document.getElementById('ambilight').getContext('2d');
+        const bkmLayer = document.getElementById('bookmarks-layer');
+
+        let files = []; let cur = -1;
+        let isShuffle = false; let repeatMode = 0;
+        let idle; let previousVol = 0.7; let toastTimeout; let osdTimer;
+        let sortMode = 0; let isPinned = false;
+        let dragTargetIndex = -1; let isResizing = false;
+        let bookmarks = {};
+
+        let engineCfg = { wheelVol: true, autoPauseDevice: true, forceFormatBypass: false, seekStep: 10, subBg: true, subSize: '1em', alwaysControls: false, osd: true, ambilight: false, discord: true, discordStream: false };
+        let currentLang = 'ru';
+
+        let audioCtx, sourceNode, gainNode;
+        let eqFilters = [];
+        let eqBands = [32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
+
+        const speeds = [0.5, 1, 1.25, 1.5, 2];
+        let speedIdx = 1;
+
+        let keybinds = {
+            play: 'Space', fwd: 'ArrowRight', bwd: 'ArrowLeft',
+            volUp: 'ArrowUp', volDown: 'ArrowDown', mute: 'KeyM', full: 'KeyF',
+            mark: 'KeyB', clearBkm: '', screen: 'KeyC', skip: 'KeyO'
+        };
+
+        const svgs = {
+            play: '<path d="M8 5v14l11-7z"/>',
+            pause: '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>',
+            fwd: '<path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/>',
+            bwd: '<path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z"/>',
+            vol: '<path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>',
+            mute: '<path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3z"/>',
+            repeatOff: '<path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/>',
+            repeatOne: '<path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4zm-4-2.5V15h-1v-2.5H11v-1h2v3.5z"/>',
+            mark: '<path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z"/>',
+            cam: '<path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>',
+            speed: '<path d="M10.09 15.59L11.5 17l5-5-5-5-1.41 1.41L12.67 11H3v2h9.67l-2.58 2.59zM19 3H5c-1.11 0-2 .9-2 2v4h2V5h14v14H5v-4H3v4c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>',
+            skip: '<path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6zM20 6h-2v12h2V6z"/>',
+            shuffle: '<path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/>',
+            pip: '<path d="M19 11h-8v6h8v-6zm4 8V4.98C23 3.88 22.1 3 21 3H3c-1.1 0-2 .88-2 1.98V19c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2zm-2 .02H3V4.97h18v14.05z" />',
+            pin: '<path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z" />'
+        };
+
+        const i18n = {
+            ru: {
+                search: "Поиск...", openFiles: "ОТКРЫТЬ ФАЙЛЫ", tabPlay: "Плеер", tabMedia: "Медиа", tabStyle: "Стиль", tabScreen: "Экран", tabSys: "О ПО", tabHotkeys: "Хоткеи", tabFx: "Эффекты",
+                cfgWheel: "Колёсико мыши для громкости", cfgDevice: "Пауза при отключении аудиоустройства", cfgFormat: "Режим всеядности (Экспериментально)", cfgFormatTitle: "Игнорировать проверку расширений.", cfgDiscord: "Discord RPC (Статус)", cfgDiscordStream: "Режим стримера Discord (Фикс звука)",
+                colorAccent: "ЦВЕТ АКЦЕНТА", videoList: "СПИСОК ВИДЕО", sideLeft: "Слева", sideRight: "Справа", sideHide: "Скрыть", language: "ЯЗЫК / LANGUAGE", applyBtn: "ПРИМЕНИТЬ",
+                windowMode: "ОКОННЫЙ РЕЖИМ", fullMode: "ПОЛНОЭКРАННЫЙ", cfgSeek: "ШАГ ПЕРЕМОТКИ (СЕК)", audioTrack: "АУДИОДОРОЖКА", subTrack: "СУБТИТРЫ",
+                defUnavailable: "По умолчанию / Недоступно", subOff: "Отключены", mediaNote: "*Некоторые встроенные дорожки могут не поддерживаться системным декодером.",
+                sysVer: "Версия: 3.0 (Build 8.5)", sysDev: "Разработчик: Alice_LUNA", sysFeat: "Активны: Ambilight Engine, WebAudio API, Умные закладки.", sysLic: "*С купленной лицензией используется версия LUNA Play PRO*",
+                toastSettings: "Настройки успешно применены", toastMuteOn: "Звук включен: ", toastMuteOff: "Звук выключен", toastVol: "Громкость: ", toastShuffleOn: "Случайный порядок: Вкл", toastShuffleOff: "Случайный порядок: Выкл",
+                toastRepOff: "Повтор: Выкл", toastRepOne: "Повтор: Текущий трек", toastRepAll: "Повтор: Весь список", toastErr: "Ошибка: Формат файла не поддерживается", toastAviWarn: "Формат AVI устарел. Пожалуйста, используйте MP4 или MKV.", toastSysErr: "Системная ошибка",
+                toastAudioDet: "Аудиоустройство отключено. Воспроизведение приостановлено.", toastResume: "Возобновлено с ", toastPipErr: "Ошибка режима Картинка-в-картинке", toastPinOn: "Поверх всех окон: Вкл", toastPinOff: "Поверх всех окон: Выкл",
+                toastSortDef: "Сортировка: По умолчанию", toastSortAZ: "Сортировка: А-Я", toastSortZA: "Сортировка: Я-А", toastSpeed: "Скорость: ", toastFwd: "Вперед: ", toastBwd: "Назад: ", toastMark: "Закладка сохранена", toastScreen: "Скриншот сохранен", toastSkip: "Пропуск: +1:30",
+                hkPlay: "Воспроизведение / Пауза", hkFwd: "Перемотка вперед", hkBwd: "Перемотка назад", hkVolUp: "Громкость +", hkVolDown: "Громкость -", hkMute: "Вкл / Выкл звук", hkFull: "Полноэкранный режим", hkMark: "Умная закладка на таймлайн", hkScreen: "Скриншот экрана", hkSkip: "Пропуск Опенинга (+1:30)",
+                listening: "Нажмите клавишу...", toolPip: "Картинка в картинке", toolPin: "Поверх всех окон", toolSort: "Сортировка", toolNet: "Сетевой поток (URL)", toolDel: "Удалить из списка", toolSpeed: "Скорость воспроизведения", toolVol: "Усиление звука", toolSkip: "Пропуск заставки (+1:30)", toolScreen: "Скриншот",
+                toolLoadSub: "Загрузить внешние субтитры", toastSubLoaded: "Субтитры загружены: ", subSettings: "НАСТРОЙКИ СУБТИТРОВ", cfgSubBg: "Фон субтитров (закругленный)", cfgSubSize: "Размер шрифта",
+                sizeSmall: "Мелкий", sizeNormal: "Нормальный", sizeLarge: "Крупный", sizeHuge: "Очень крупный", cfgAlways: "Постоянная панель (не перекрывает видео)", cfgOsd: "Центральные OSD индикаторы", cfgAmbilight: "Свечение Ambilight", fxAudio: "ЭКВАЛАЙЗЕР", netPrompt: "Введите прямую URL ссылку на видео:", fxReset: "Сбросить эквалайзер",
+                btnClearBkm: "УДАЛИТЬ ЗАКЛАДКИ С ВИДЕО", toastBkmClear: "Закладки видео удалены", hkClearBkm: "Удалить закладки",
+                langRu: "Русский", langEn: "English", seek5: "5 сек", seek10: "10 сек", seek30: "30 сек",
+                osdPlay: "Плей", osdPause: "Пауза", osdResume: "Возобновлено", osdShuffleOn: "Случайно", osdShuffleOff: "По порядку", osdRepOff: "Без повтора", osdRepOne: "Повтор трека", osdRepAll: "Повтор списка", osdScreen: "Скриншот", osdMark: "Закладка", osdBkmClear: "Закладки удалены", osdPip: "Миниатюра", osdPinOn: "Поверх окон", osdPinOff: "Обычный", osdSec: " сек",
+                toastInvalidUrl: "Неверный формат ссылки", toastNetSuccess: "Поток успешно загружен", toastNetError: "Поток недоступен (404/Ошибка)", toastNetTimeout: "Превышено время ожидания", toastNetCors: "Ошибка сети или доступ закрыт",
+                btnCancel: "Отмена", btnLoad: "Загрузить",
+                clearCacheTitle: "Очистить кэш приложения", clearCacheBtn: "Сброс", toastCacheSuccess: "Кэш приложения успешно очищен"
+            },
+            en: {
+                search: "Search...", openFiles: "OPEN FILES", tabPlay: "Player", tabMedia: "Media", tabStyle: "Style", tabScreen: "Screen", tabSys: "About", tabHotkeys: "Hotkeys", tabFx: "Effects",
+                cfgWheel: "Mouse wheel for volume", cfgDevice: "Pause on audio device disconnect", cfgFormat: "Omnivorous mode (Experimental)", cfgFormatTitle: "Ignore extension checks.", cfgDiscord: "Discord RPC (Status)", cfgDiscordStream: "Discord Streamer Mode (Fixes Audio)",
+                colorAccent: "ACCENT COLOR", videoList: "VIDEO LIST", sideLeft: "Left", sideRight: "Right", sideHide: "Hide", language: "LANGUAGE / ЯЗЫК", applyBtn: "APPLY",
+                windowMode: "WINDOWED MODE", fullMode: "FULLSCREEN", cfgSeek: "SEEK STEP (SEC)", audioTrack: "AUDIO TRACK", subTrack: "SUBTITLES",
+                defUnavailable: "Default / Unavailable", subOff: "Disabled", mediaNote: "*Some internal tracks might not be supported by system decoder.",
+                sysVer: "Version: 3.0 (Build 8.5)", sysDev: "Developer: Alice_LUNA", sysFeat: "Active: Ambilight Engine, WebAudio API, Smart Bookmarks.", sysLic: "*With a purchased license, LUNA Play PRO version is used*",
+                toastSettings: "Settings successfully applied", toastMuteOn: "Sound on: ", toastMuteOff: "Sound muted", toastVol: "Volume: ", toastShuffleOn: "Shuffle: On", toastShuffleOff: "Shuffle: Off",
+                toastRepOff: "Repeat: Off", toastRepOne: "Repeat: Current track", toastRepAll: "Repeat: All list", toastErr: "Error: File format not supported", toastAviWarn: "AVI format is obsolete. Please use MP4 or MKV.", toastSysErr: "System error",
+                toastAudioDet: "Audio device disconnected. Playback paused.", toastResume: "Resumed from ", toastPipErr: "Picture-in-Picture error", toastPinOn: "Always on top: On", toastPinOff: "Always on top: Off",
+                toastSortDef: "Sort: Default", toastSortAZ: "Sort: A-Z", toastSortZA: "Sort: Z-A", toastSpeed: "Speed: ", toastFwd: "Fwd: ", toastBwd: "Bwd: ", toastMark: "Bookmark saved", toastScreen: "Screenshot saved", toastSkip: "Skip: +1:30",
+                hkPlay: "Play / Pause", hkFwd: "Seek forward", hkBwd: "Seek backward", hkVolUp: "Volume +", hkVolDown: "Volume -", hkMute: "Mute / Unmute", hkFull: "Fullscreen mode", hkMark: "Smart Bookmark", hkScreen: "Take Screenshot", hkSkip: "Skip Opening (+1:30)",
+                listening: "Press a key...", toolPip: "Picture in Picture", toolPin: "Always on top", toolSort: "Sort", toolNet: "Network Stream (URL)", toolDel: "Remove from list", toolSpeed: "Playback Speed", toolVol: "Volume boost", toolSkip: "Skip Opening (+1:30)", toolScreen: "Screenshot",
+                toolLoadSub: "Load external subtitles", toastSubLoaded: "Subtitles loaded: ", subSettings: "SUBTITLE SETTINGS", cfgSubBg: "Subtitle Background (Rounded)", cfgSubSize: "Font Size",
+                sizeSmall: "Small", sizeNormal: "Normal", sizeLarge: "Large", sizeHuge: "Huge", cfgAlways: "Always show controls", cfgOsd: "Center OSD Indicators", cfgAmbilight: "Ambilight Glow", fxAudio: "EQUALIZER", netPrompt: "Enter direct video URL:", fxReset: "Reset Equalizer",
+                btnClearBkm: "CLEAR VIDEO BOOKMARKS", toastBkmClear: "Video bookmarks cleared", hkClearBkm: "Clear bookmarks",
+                langRu: "Russian", langEn: "English", seek5: "5 sec", seek10: "10 sec", seek30: "30 sec",
+                osdPlay: "Play", osdPause: "Pause", osdResume: "Resumed", osdShuffleOn: "Shuffle", osdShuffleOff: "In order", osdRepOff: "Repeat Off", osdRepOne: "Repeat One", osdRepAll: "Repeat All", osdScreen: "Screenshot", osdMark: "Bookmark", osdBkmClear: "Bookmarks cleared", osdPip: "Miniplayer", osdPinOn: "Always on top", osdPinOff: "Normal mode", osdSec: "s",
+                toastInvalidUrl: "Invalid URL format", toastNetSuccess: "Stream loaded successfully", toastNetError: "Stream unavailable (404/Error)", toastNetTimeout: "Connection timeout", toastNetCors: "Network error or access denied",
+                btnCancel: "Cancel", btnLoad: "Load",
+                clearCacheTitle: "Clear App Cache", clearCacheBtn: "Reset", toastCacheSuccess: "App cache cleared successfully"
+            }
+        };
+
+        function setLanguage(lang) {
+            try {
+                currentLang = lang;
+                document.documentElement.lang = lang;
+                document.querySelectorAll('[data-i18n]').forEach(el => {
+                    const key = el.getAttribute('data-i18n');
+                    if (i18n[lang][key]) el.innerText = i18n[lang][key];
+                });
+                document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+                    const key = el.getAttribute('data-i18n-ph');
+                    if (i18n[lang][key]) el.placeholder = i18n[lang][key];
+                });
+                document.querySelectorAll('[data-i18n-title]').forEach(el => {
+                    const key = el.getAttribute('data-i18n-title');
+                    if (i18n[lang][key]) el.title = i18n[lang][key];
+                });
+                updateHotkeysUI();
+                if (document.getElementById('s-input')) renderPlaylist(document.getElementById('s-input').value);
+                updateTracksUI();
+                updateSelectLabels();
+                updateAboutTabStats();
+            } catch (err) {
+                sendErrorToMain("setLanguage Error: " + err.message, err.stack);
+            }
+        }
+
+        function updateSelectLabels() {
+            try {
+                const langSel = document.getElementById('cfg-lang');
+                document.getElementById('lbl-lang').innerText = langSel.options[langSel.selectedIndex].text + " >";
+
+                const seekSel = document.getElementById('cfg-seek');
+                document.getElementById('lbl-seek').innerText = seekSel.options[seekSel.selectedIndex].text + " >";
+
+                const sizeSel = document.getElementById('cfg-sub-size');
+                document.getElementById('lbl-sub-size').innerText = sizeSel.options[sizeSel.selectedIndex].text + " >";
+
+                const sideSel = document.getElementById('cfg-side');
+                document.getElementById('lbl-side').innerText = sideSel.options[sideSel.selectedIndex].text + " >";
+            } catch(e){}
+        }
+
+        function triggerRowClick(rowElement) {
+            const cb = rowElement.querySelector('.toggle-switch input[type="checkbox"]');
+            if (cb) {
+                cb.checked = !cb.checked;
+                cb.dispatchEvent(new Event('change'));
+                return;
+            }
+            const sel = rowElement.querySelector('.select-wrapper select');
+            if (sel) {
+                sel.focus();
+                let event = document.createEvent('MouseEvents');
+                event.initMouseEvent('mousedown', true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
+                sel.dispatchEvent(event);
+            }
+        }
+
+        function clearAppCache() {
+            if (ipcRenderer) {
+                ipcRenderer.send('clear-app-cache');
+            }
+        }
+
+        function notifyAction(iconSvg, osdTextKey, toastMsgKey, appendText = "") {
+            let osdText = i18n[currentLang][osdTextKey] || osdTextKey;
+
+            if (engineCfg.osd && iconSvg) {
+                osdVal.innerHTML = `<div style="display:flex; align-items:center; justify-content:center; gap:12px;"><svg viewBox="0 0 24 24" style="width:28px; height:28px; fill:#fff;">${iconSvg}</svg> <span style="font-size:18px; white-space:nowrap; font-weight:600;">${osdText}${appendText}</span></div>`;
+                osd.classList.add('show');
+                clearTimeout(osdTimer);
+                osdTimer = setTimeout(() => osd.classList.remove('show'), 800);
+            } else {
+                const container = document.getElementById('toast-container');
+                let toast = container.querySelector('.toast');
+                if (!toast) { toast = document.createElement('div'); toast.className = 'toast'; container.appendChild(toast); }
+                let msg = i18n[currentLang][toastMsgKey] !== undefined ? i18n[currentLang][toastMsgKey] : toastMsgKey;
+                toast.innerText = msg + appendText;
+                toast.style.animation = 'none'; void toast.offsetWidth;
+                toast.style.animation = 'slideIn 0.25s cubic-bezier(0.25, 1, 0.5, 1) forwards, fadeOut 0.25s cubic-bezier(0.25, 1, 0.5, 1) 2.5s forwards';
+                clearTimeout(toastTimeout);
+                toastTimeout = setTimeout(() => { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 2800);
+            }
+        }
+        function showToast(messageKey, appendText = "") { notifyAction("", "", messageKey, appendText); }
+
+        let isListeningForHotkey = false; let listeningAction = null;
+        function formatKey(code) { return !code ? '' : code.replace('Key', '').replace('ArrowRight', '→').replace('ArrowLeft', '←').replace('ArrowUp', '↑').replace('ArrowDown', '↓'); }
+
+        function listenKey(action) {
+            isListeningForHotkey = true; listeningAction = action;
+            document.querySelectorAll('.hk-btn').forEach(btn => btn.classList.remove('listening'));
+            const btn = document.getElementById('hk-' + action);
+            if (btn) {
+                btn.classList.add('listening');
+                btn.innerText = i18n[currentLang].listening;
+            }
+        }
+
+        function bindKey(action, code) {
+            isListeningForHotkey = false; listeningAction = null;
+            for (let key in keybinds) { if (key !== action && keybinds[key] === code) keybinds[key] = ''; }
+            keybinds[action] = code; localStorage.setItem('l-keybinds', JSON.stringify(keybinds)); updateHotkeysUI();
+        }
+
+        function updateHotkeysUI() {
+            for (let action in keybinds) {
+                const btn = document.getElementById('hk-' + action);
+                if (btn) { btn.classList.remove('listening'); btn.innerText = formatKey(keybinds[action]); }
+            }
+        }
+
+        function initAudio() {
+            if (audioCtx || engineCfg.discordStream) return;
+            try {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                sourceNode = audioCtx.createMediaElementSource(v);
+                gainNode = audioCtx.createGain();
+
+                eqBands.forEach((freq, i) => {
+                    let filter = audioCtx.createBiquadFilter();
+                    filter.type = (i === 0) ? 'lowshelf' : (i === 9) ? 'highshelf' : 'peaking';
+                    filter.frequency.value = freq;
+                    eqFilters.push(filter);
+                });
+
+                sourceNode.connect(eqFilters[0]);
+                for (let i = 0; i < 9; i++) eqFilters[i].connect(eqFilters[i + 1]);
+                eqFilters[9].connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                applyFx();
+                updateAboutTabStats();
+            } catch (e) { sendErrorToMain("Web Audio API Error: " + e.message, e.stack); }
+        }
+
+        function applyFx() {
+            let eqVals = [];
+            document.querySelectorAll('.eq-sl').forEach((sl, i) => {
+                let val = parseFloat(sl.value);
+                eqVals.push(val);
+                if (eqFilters[i]) eqFilters[i].gain.value = val;
+            });
+            localStorage.setItem('l-fx-audio', JSON.stringify(eqVals));
+        }
+
+        function resetEq() {
+            document.querySelectorAll('.eq-sl').forEach(sl => sl.value = 0);
+            applyFx();
+            showToast('toastSettings');
+        }
+
+        let ambLoop;
+        let lastAmbTime = 0;
+        function renderAmbilight(timestamp) {
+            if (!engineCfg.ambilight || v.paused || v.ended) return;
+            if (timestamp - lastAmbTime > 40) {
+                ambCtx.drawImage(v, 0, 0, 300, 150);
+                lastAmbTime = timestamp;
+            }
+            ambLoop = requestAnimationFrame(renderAmbilight);
+        }
+        v.addEventListener('play', () => { if (engineCfg.ambilight) { document.body.classList.add('ambilight-on'); if (!ambLoop) requestAnimationFrame(renderAmbilight); } });
+        v.addEventListener('pause', () => { document.body.classList.remove('ambilight-on'); cancelAnimationFrame(ambLoop); ambLoop = null; });
+
+        function addNetworkStream() {
+            const modal = document.getElementById('url-modal');
+            const input = document.getElementById('url-input');
+            input.placeholder = i18n[currentLang].netPrompt || "Введите прямую URL ссылку на видео:";
+            modal.classList.add('show');
+            input.focus();
+        }
+
+        function closeUrlModal() {
+            document.getElementById('url-modal').classList.remove('show');
+            document.getElementById('url-input').value = '';
+        }
+
+        document.getElementById('url-input').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') submitUrlModal();
+        });
+
+        async function submitUrlModal() {
+            let url = document.getElementById('url-input').value.trim();
+            closeUrlModal();
+            if (!url) return;
+
+            const urlRegex = /^https?:\/\/.+/i;
+            if (!urlRegex.test(url)) { showToast('toastInvalidUrl'); return; }
+
+            const btn = document.querySelector('[onclick="addNetworkStream()"]');
+            const originalHTML = btn.innerHTML;
+
+            try {
+                btn.style.pointerEvents = 'none'; btn.style.opacity = '0.5';
+                btn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M12 4V2A10 10 0 0 0 2 12h2a8 8 0 0 1 8-8z"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite"/></path></svg>`;
+
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000);
+                const response = await fetch(url, { method: 'HEAD', signal: controller.signal });
+                clearTimeout(timeoutId);
+
+                if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+
+                let fileName = url.split('/').pop().split('?')[0] || 'Network Stream';
+                if (!fileName.includes('.')) fileName += '.mp4';
+
+                files.push({ name: fileName, url: url, addedAt: Date.now() });
+                renderPlaylist(document.getElementById('s-input').value);
+                play(files.length - 1);
+                showToast('toastNetSuccess');
+                updateAboutTabStats();
+            } catch (error) {
+                let errorMsg = 'toastNetError';
+                if (error.name === 'AbortError') errorMsg = 'toastNetTimeout';
+                else if (error.message.includes('Failed to fetch')) errorMsg = 'toastNetCors';
+                showToast(errorMsg);
+            } finally {
+                btn.style.pointerEvents = 'auto'; btn.style.opacity = '1'; btn.innerHTML = originalHTML;
+            }
+        }
+
+        function takeScreenshot() {
+            const canvas = document.createElement('canvas');
+            canvas.width = v.videoWidth; canvas.height = v.videoHeight;
+            canvas.getContext('2d').drawImage(v, 0, 0, canvas.width, canvas.height);
+            const link = document.createElement('a');
+            link.download = `Luna_Screenshot_${Date.now()}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            notifyAction(svgs.cam, 'osdScreen', 'toastScreen');
+        }
+
+        function addBookmark() {
+            if (cur === -1) return;
+            let fName = files[cur].name;
+            if (!bookmarks[fName]) bookmarks[fName] = [];
+            bookmarks[fName].push(v.currentTime);
+            localStorage.setItem('l-bookmarks', JSON.stringify(bookmarks));
+            renderBookmarks();
+            notifyAction(svgs.mark, 'osdMark', 'toastMark');
+        }
+
+        function clearBookmarks() {
+            if (cur === -1 || !files[cur]) return;
+            let fName = files[cur].name;
+            if (bookmarks[fName]) {
+                delete bookmarks[fName];
+                localStorage.setItem('l-bookmarks', JSON.stringify(bookmarks));
+                renderBookmarks();
+                notifyAction(svgs.mark, 'osdBkmClear', 'toastBkmClear');
+            }
+        }
+
+        function renderBookmarks() {
+            bkmLayer.innerHTML = '';
+            if (cur === -1 || !bookmarks[files[cur].name] || !v.duration) return;
+            bookmarks[files[cur].name].forEach(time => {
+                let p = (time / v.duration) * 100;
+                if (p >= 0 && p <= 100) {
+                    let d = document.createElement('div');
+                    d.className = 'bookmark-marker';
+                    d.style.left = p + '%';
+                    bkmLayer.appendChild(d);
+                }
+            });
+        }
+
+        v.addEventListener('loadedmetadata', () => { updateTracksUI(); renderBookmarks(); });
+
+        function updateTracksUI() {
+            const aSel = document.getElementById('cfg-audio');
+            const sSel = document.getElementById('cfg-sub');
+            if(!aSel || !sSel) return;
+            aSel.innerHTML = ''; sSel.innerHTML = '';
+
+            if (v.audioTracks && v.audioTracks.length > 1) {
+                for (let i = 0; i < v.audioTracks.length; i++) {
+                    const t = v.audioTracks[i]; aSel.innerHTML += `<option value="${i}" ${t.enabled ? 'selected' : ''}>${t.language || 'Track ' + (i + 1)}</option>`;
+                }
+            } else { aSel.innerHTML = `<option value="-1">${i18n[currentLang].defUnavailable}</option>`; }
+
+            if (v.textTracks && v.textTracks.length > 0) {
+                sSel.innerHTML += `<option value="-1">${i18n[currentLang].subOff}</option>`;
+                for (let i = 0; i < v.textTracks.length; i++) {
+                    const t = v.textTracks[i]; sSel.innerHTML += `<option value="${i}" ${t.mode === 'showing' ? 'selected' : ''}>${t.label || t.language || 'Sub ' + (i + 1)}</option>`;
+                }
+            } else { sSel.innerHTML = `<option value="-1">${i18n[currentLang].defUnavailable}</option>`; }
+
+            setTimeout(() => {
+                try {
+                    document.getElementById('lbl-audio').innerText = aSel.options[aSel.selectedIndex].text + " >";
+                    document.getElementById('lbl-sub').innerText = sSel.options[sSel.selectedIndex].text + " >";
+                } catch(e){}
+            }, 50);
+        }
+
+        function changeAudioTrack(idx) { if (!v.audioTracks || idx == -1) return; for (let i = 0; i < v.audioTracks.length; i++) { v.audioTracks[i].enabled = (i == idx); } }
+        function changeSubTrack(idx) { if (!v.textTracks) return; for (let i = 0; i < v.textTracks.length; i++) { v.textTracks[i].mode = (i == idx) ? 'showing' : 'hidden'; } }
+
+        function loadExternalSubtitle(e) {
+            const file = e.target.files[0]; if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function (evt) {
+                let content = evt.target.result;
+                if (file.name.toLowerCase().endsWith('.srt')) content = "WEBVTT\n\n" + content.replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, '$1.$2');
+                const track = document.createElement('track'); track.kind = 'subtitles'; track.label = file.name; track.srclang = 'custom';
+                track.src = URL.createObjectURL(new Blob([content], { type: 'text/vtt' })); track.default = true; v.appendChild(track);
+                setTimeout(() => {
+                    for (let i = 0; i < v.textTracks.length; i++) v.textTracks[i].mode = 'hidden';
+                    if (v.textTracks.length > 0) v.textTracks[v.textTracks.length - 1].mode = 'showing';
+                    updateTracksUI(); showToast('toastSubLoaded', file.name);
+                }, 100);
+            }; reader.readAsText(file); e.target.value = '';
+        }
+
+        v.addEventListener('click', (e) => { e.stopPropagation(); closeSettings(); togglePlay(); });
+        document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement) document.body.classList.remove('fullscreen'); else document.body.classList.add('fullscreen'); });
+
+        function setScreen(m) {
+            if (m === 'full') { document.getElementById('drop-zone').requestFullscreen().catch(() => { }); }
+            else { if (document.fullscreenElement) document.exitFullscreen(); }
+            closeSettings();
+        }
+
+        sidebarResizer.addEventListener('mousedown', (e) => { isResizing = true; document.body.style.cursor = 'ew-resize'; e.preventDefault(); });
+        document.addEventListener('mousemove', (e) => {
+            if (!isResizing) return;
+            const sidebarSide = document.getElementById('cfg-side').value;
+            let newWidth = sidebarSide === 'left' ? e.clientX : document.body.clientWidth - e.clientX;
+            if (newWidth < 200) newWidth = 200; if (newWidth > 800) newWidth = 800;
+            document.documentElement.style.setProperty('--sidebar-width', newWidth + 'px');
+        });
+        document.addEventListener('mouseup', () => { if (isResizing) { isResizing = false; document.body.style.cursor = 'default'; localStorage.setItem('l-sidebar-width', getComputedStyle(document.documentElement).getPropertyValue('--sidebar-width')); } });
+
+        async function togglePiP() {
+            try { if (document.pictureInPictureElement) await document.exitPictureInPicture(); else { await v.requestPictureInPicture(); notifyAction(svgs.pip, 'osdPip', 'toolPip'); } }
+            catch (e) { showToast('toastPipErr'); }
+        }
+        v.addEventListener('enterpictureinpicture', () => { document.getElementById('pip-btn').classList.add('active'); try { require('electron').ipcRenderer.send('window-minimize'); } catch (e) { } });
+        v.addEventListener('leavepictureinpicture', () => { document.getElementById('pip-btn').classList.remove('active'); try { require('electron').ipcRenderer.send('window-restore'); } catch (e) { } });
+
+        function togglePin() {
+            isPinned = !isPinned; document.getElementById('pin-btn').classList.toggle('active', isPinned);
+            try { require('electron').ipcRenderer.send('toggle-pin', isPinned); notifyAction(svgs.pin, isPinned ? 'osdPinOn' : 'osdPinOff', isPinned ? 'toastPinOn' : 'toastPinOff'); } catch (e) { }
+        }
+
+        function toggleSort() {
+            if (files.length === 0) return; sortMode = (sortMode + 1) % 3; let activeFileName = cur >= 0 ? files[cur].name : null;
+            if (sortMode === 0) { files.sort((a, b) => a.addedAt - b.addedAt); showToast('toastSortDef'); document.getElementById('sort-btn').classList.remove('active'); }
+            else if (sortMode === 1) { files.sort((a, b) => a.name.localeCompare(b.name)); showToast('toastSortAZ'); document.getElementById('sort-btn').classList.add('active'); }
+            else { files.sort((a, b) => b.name.localeCompare(a.name)); showToast('toastSortZA'); document.getElementById('sort-btn').classList.add('active'); }
+            if (activeFileName) cur = files.findIndex(f => f.name === activeFileName); renderPlaylist(document.getElementById('s-input').value);
+        }
+
+        function isValidMedia(f) { if (engineCfg.forceFormatBypass) return true; const nameLower = f.name.toLowerCase(); return f.type.startsWith('video/') || f.type.startsWith('audio/') || nameLower.endsWith('.mkv') || nameLower.endsWith('.mp4') || nameLower.endsWith('.avi') || nameLower.endsWith('.webm'); }
+        document.addEventListener('dragenter', e => e.preventDefault()); document.addEventListener('dragover', e => { e.preventDefault(); if (e.dataTransfer.types.includes('Files')) e.dataTransfer.dropEffect = 'copy'; });
+        document.addEventListener('drop', e => { e.preventDefault(); if (e.dataTransfer.files && e.dataTransfer.files.length > 0) { const dropped = Array.from(e.dataTransfer.files).filter(isValidMedia); if (dropped.length) addFiles(dropped); } });
+
+        function importFiles(e) { addFiles(Array.from(e.target.files).filter(isValidMedia)); }
+        function addFiles(newFiles) {
+            let wasEmpty = files.length === 0;
+            newFiles.forEach((f, idx) => { files.push({ name: f.name, url: URL.createObjectURL(f), addedAt: Date.now() + idx }); });
+            if (sortMode !== 0) { sortMode--; toggleSort(); } else { renderPlaylist(document.getElementById('s-input').value); }
+            if (wasEmpty || cur === -1) play(0);
+            updateAboutTabStats();
+        }
+
+        function removeVideo(e, index) {
+            e.stopPropagation(); const removed = files.splice(index, 1)[0];
+            if (removed.url.startsWith('blob:')) URL.revokeObjectURL(removed.url);
+            if (cur === index) { v.pause(); v.src = ""; pVid.src = ""; cur = -1; document.getElementById('play-svg').innerHTML = svgs.play; if (files.length > 0) play(Math.min(index, files.length - 1)); } else if (cur > index) { cur--; }
+            renderPlaylist(document.getElementById('s-input').value);
+            updateAboutTabStats();
+        }
+
+        function reorderVideo(fromIndex, toIndex) {
+            if (fromIndex === toIndex || fromIndex === -1) return; const item = files.splice(fromIndex, 1)[0]; files.splice(toIndex, 0, item);
+            if (cur === fromIndex) cur = toIndex; else { if (cur > fromIndex && cur <= toIndex) cur--; else if (cur < fromIndex && cur >= toIndex) cur++; }
+            sortMode = 0; document.getElementById('sort-btn').classList.remove('active'); files.forEach((f, idx) => f.addedAt = Date.now() + idx); renderPlaylist(document.getElementById('s-input').value);
+        }
+
+        function renderPlaylist(filter = "") {
+            ui.innerHTML = '';
+            files.forEach((f, i) => {
+                if (filter && !f.name.toLowerCase().includes(filter.toLowerCase())) return;
+                const li = document.createElement('li'); li.className = `v-item ${i === cur ? 'active' : ''}`; li.draggable = true;
+                li.innerHTML = `<span class="v-item-text" title="${f.name}">${f.name}</span><button class="v-item-del" onclick="removeVideo(event, ${i})" title="${i18n[currentLang].toolDel}">✕</button>`;
+                li.onclick = () => play(i);
+                li.ondragstart = (e) => { dragTargetIndex = i; e.dataTransfer.effectAllowed = 'move'; li.style.opacity = '0.5'; }; li.ondragover = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }; li.ondragenter = (e) => { e.preventDefault(); li.classList.add('drag-over'); }; li.ondragleave = (e) => { li.classList.remove('drag-over'); };
+                li.ondrop = (e) => { e.preventDefault(); li.classList.remove('drag-over'); reorderVideo(dragTargetIndex, i); }; li.ondragend = () => { li.style.opacity = '1'; document.querySelectorAll('.v-item').forEach(el => el.classList.remove('drag-over')); };
+                ui.appendChild(li);
+            });
+        }
+
+        function play(i) {
+            if (!files[i]) return;
+            if (files[i].name.toLowerCase().endsWith('.avi')) { showToast('toastAviWarn'); document.getElementById('play-svg').innerHTML = svgs.play; return; }
+
+            cur = i; v.src = files[i].url; pVid.src = files[i].url; pVid.load();
+            v.querySelectorAll('track').forEach(t => t.remove()); updateTracksUI();
+
+            v.onloadedmetadata = () => {
+                const savedPos = localStorage.getItem('pos_' + files[i].name);
+                if (savedPos && parseFloat(savedPos) > 5 && (v.duration - parseFloat(savedPos) > 5)) {
+                    v.currentTime = parseFloat(savedPos); notifyAction(svgs.play, 'osdResume', 'toastResume', " " + formatTime(v.currentTime));
+                }
+                updateTracksUI(); renderBookmarks();
+            };
+
+            v.play().catch(e => { showToast('toastErr'); });
+            document.getElementById('play-svg').innerHTML = svgs.pause; renderPlaylist(); updateDiscordRPC();
+        }
+
+        function togglePlay() {
+            if (v.paused) { v.play().catch(()=>{}); document.getElementById('play-svg').innerHTML = svgs.pause; notifyAction(svgs.play, 'osdPlay', 'toastPlay'); }
+            else { v.pause(); document.getElementById('play-svg').innerHTML = svgs.play; notifyAction(svgs.pause, 'osdPause', 'toastPause'); }
+            if (!audioCtx && !engineCfg.discordStream) initAudio();
+            updateDiscordRPC();
+        }
+
+        function toggleSpeed() {
+            speedIdx = (speedIdx + 1) % speeds.length; v.playbackRate = speeds[speedIdx];
+            document.getElementById('speed-btn').innerText = speeds[speedIdx] + 'x';
+            notifyAction(svgs.speed, "", 'toastSpeed', speeds[speedIdx] + 'x');
+        }
+
+        v.addEventListener('ended', () => { if (cur >= 0) localStorage.removeItem('pos_' + files[cur].name); if (repeatMode === 1) play(cur); else nextV(); });
+        function nextV() {
+            if (!files.length) return; let next;
+            if (isShuffle) { if (files.length > 1) { do { next = Math.floor(Math.random() * files.length); } while (next === cur); } else next = 0; }
+            else { next = cur + 1; if (next >= files.length) { if (repeatMode === 2) next = 0; else return; } }
+            play(next);
+        }
+
+        function toggleShuffle() {
+            isShuffle = !isShuffle; document.getElementById('shuffle-btn').classList.toggle('active', isShuffle);
+            notifyAction(svgs.shuffle, isShuffle ? 'osdShuffleOn' : 'osdShuffleOff', isShuffle ? 'toastShuffleOn' : 'toastShuffleOff');
+        }
+
+        function toggleRepeat() {
+            repeatMode = (repeatMode + 1) % 3; const btn = document.getElementById('repeat-btn');
+            if (repeatMode === 0) { btn.classList.remove('active'); btn.innerHTML = `<svg viewBox="0 0 24 24">${svgs.repeatOff}</svg>`; notifyAction(svgs.repeatOff, 'osdRepOff', 'toastRepOff'); }
+            else if (repeatMode === 1) { btn.classList.add('active'); btn.innerHTML = `<svg viewBox="0 0 24 24">${svgs.repeatOne}</svg>`; notifyAction(svgs.repeatOne, 'osdRepOne', 'toastRepOne'); }
+            else { btn.classList.add('active'); btn.innerHTML = `<svg viewBox="0 0 24 24">${svgs.repeatOff}</svg>`; notifyAction(svgs.repeatOff, 'osdRepAll', 'toastRepAll'); }
+            updateAboutTabStats();
+        }
+
+        function changeVol(val, fromUI = false) {
+            val = parseFloat(val); if (val > 3) val = 3; if (val < 0) val = 0;
+            if (val > 1 && !audioCtx && !engineCfg.discordStream) initAudio();
+
+            document.getElementById('v-slider').value = val; document.getElementById('vol-svg').innerHTML = val === 0 ? svgs.mute : svgs.vol; document.getElementById('m-btn').classList.toggle('active', val === 0);
+
+            if (audioCtx && gainNode && !engineCfg.discordStream) {
+                if (val <= 1) { v.volume = val; gainNode.gain.value = 1; } else { v.volume = 1; gainNode.gain.value = val; }
+            } else { v.volume = Math.min(val, 1); }
+
+            if (fromUI) { notifyAction(val === 0 ? svgs.mute : svgs.vol, "", 'toastVol', `${Math.round(val * 100)}%`); }
+            if (val > 0) { previousVol = val; localStorage.setItem('l-vol', val); }
+            updateAboutTabStats();
+        }
+
+        function toggleMute() { if (v.volume > 0) { changeVol(0, true); } else { changeVol(previousVol > 0 ? previousVol : 0.7, true); } }
+
+        document.getElementById('drop-zone').addEventListener('wheel', (e) => {
+            if (!engineCfg.wheelVol) return;
+            if (e.target.closest('.controls') || e.target.closest('.settings-window') || e.target.closest('#url-modal')) return;
+            e.preventDefault(); let step = Math.sign(e.deltaY) * -0.05; changeVol(Math.max(0, Math.min(3, parseFloat(document.getElementById('v-slider').value) + step)), true);
+        });
+
+        if (navigator.mediaDevices && navigator.mediaDevices.ondevicechange !== undefined) { navigator.mediaDevices.addEventListener('devicechange', () => { if (engineCfg.autoPauseDevice && !v.paused) { togglePlay(); showToast('toastAudioDet'); } }); }
+
+        function seek(s) {
+            v.currentTime += s;
+            let textValue = (s > 0 ? '+' : '') + s;
+            notifyAction(s > 0 ? svgs.fwd : svgs.bwd, "", s > 0 ? 'toastFwd' : 'toastBwd', textValue + i18n[currentLang].osdSec);
+            updateDiscordRPC();
+        }
+
+        function skipOpening() {
+            v.currentTime += 90;
+            notifyAction(svgs.skip, "", 'toastSkip', "+1:30");
+            updateDiscordRPC();
+        }
+
+        let lastSavedPosTime = 0;
+        v.ontimeupdate = () => {
+            if (!v.duration) return;
+            const p = (v.currentTime / v.duration) * 100 || 0; prog.style.width = p + '%';
+            document.getElementById('c-time').innerText = formatTime(v.currentTime); document.getElementById('d-time').innerText = formatTime(v.duration);
+
+            if (cur >= 0 && v.currentTime - lastSavedPosTime >= 5) {
+                localStorage.setItem('pos_' + files[cur].name, v.currentTime);
+                lastSavedPosTime = v.currentTime;
+            }
+        };
+
+        function formatTime(s) { if (isNaN(s)) return "0:00"; const m = Math.floor(s / 60); const sc = Math.floor(s % 60); return `${m}:${sc < 10 ? '0' + sc : sc}`; }
+
+        let wasPlayingBeforeDrag = false;
+        function seekDrag(e) {
+            wasPlayingBeforeDrag = !v.paused;
+            if (wasPlayingBeforeDrag) v.pause();
+
+            const f = (ev) => {
+                const r = tLine.getBoundingClientRect();
+                let x = Math.max(0, Math.min(ev.clientX - r.left, r.width));
+                v.currentTime = (x / r.width) * v.duration;
+            };
+            f(e); window.onmousemove = f;
+            window.onmouseup = () => {
+                window.onmousemove = null; window.onmouseup = null;
+                if (wasPlayingBeforeDrag) v.play().catch(()=>{});
+                updateDiscordRPC();
+            };
+        }
+
+        let previewUpdateTimer = null; let lastPreviewTime = -1;
+        tLine.addEventListener('mousemove', (e) => {
+            if (!v.duration || !files.length) return;
+            const r = tLine.getBoundingClientRect(); let x = Math.max(0, Math.min(e.clientX - r.left, r.width)); const hoverTime = (x / r.width) * v.duration;
+
+            pTimeLbl.innerText = formatTime(hoverTime); pBox.style.display = 'flex'; pBox.style.left = x + 'px';
+
+            if (pVid.readyState >= 1 && Math.abs(hoverTime - lastPreviewTime) > 1) {
+                if (!previewUpdateTimer) {
+                    previewUpdateTimer = setTimeout(() => {
+                        pVid.currentTime = hoverTime; lastPreviewTime = hoverTime; previewUpdateTimer = null;
+                    }, 100);
+                }
+            }
+        });
+        tLine.addEventListener('mouseleave', () => pBox.style.display = 'none');
+
+        window.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+            if (isListeningForHotkey) {
+                e.preventDefault();
+                if (e.code === 'Escape') { isListeningForHotkey = false; updateHotkeysUI(); return; }
+                bindKey(listeningAction, e.code); return;
+            }
+
+            if (['Space', 'ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown'].includes(e.code)) { if (e.target.tagName === 'BUTTON' || e.target.type === 'range') e.target.blur(); }
+
+            switch (e.code) {
+                case keybinds.play: e.preventDefault(); togglePlay(); break;
+                case keybinds.fwd: e.preventDefault(); seek(engineCfg.seekStep); break;
+                case keybinds.bwd: e.preventDefault(); seek(-engineCfg.seekStep); break;
+                case keybinds.volUp: e.preventDefault(); changeVol(Math.min(3, parseFloat(document.getElementById('v-slider').value) + 0.05), true); break;
+                case keybinds.volDown: e.preventDefault(); changeVol(Math.max(0, parseFloat(document.getElementById('v-slider').value) - 0.05), true); break;
+                case keybinds.mute: e.preventDefault(); toggleMute(); break;
+                case keybinds.full: e.preventDefault(); setScreen(document.fullscreenElement ? 'window' : 'full'); break;
+                case keybinds.mark: e.preventDefault(); addBookmark(); break;
+                case keybinds.clearBkm: e.preventDefault(); clearBookmarks(); break;
+                case keybinds.screen: e.preventDefault(); takeScreenshot(); break;
+                case keybinds.skip: e.preventDefault(); skipOpening(); break;
+            }
+        });
+
+        function toggleSettings() { document.getElementById('s-window').classList.toggle('show'); }
+        function closeSettings() { document.getElementById('s-window').classList.remove('show'); if (isListeningForHotkey) { isListeningForHotkey = false; updateHotkeysUI(); } }
+        function openTab(t) { document.querySelectorAll('.tab-pane, .s-sidebar div').forEach(el => el.classList.remove('active')); document.getElementById('p-' + t).classList.add('active'); document.getElementById('t-' + t).classList.add('active'); }
+
+        function updateDiscordRPC() {
+            try {
+                const { ipcRenderer } = require('electron');
+                const data = {
+                    enabled: engineCfg.discord,
+                    file: cur >= 0 ? files[cur].name : '',
+                    paused: v.paused,
+                    startTimestamp: Date.now() - Math.floor(v.currentTime * 1000)
+                };
+                ipcRenderer.send('update-rpc', data);
+            } catch (e) { }
+        }
+
+        // Функция динамического обновления данных во вкладке "О ПО"
+        function updateAboutTabStats() {
+            try {
+                if(document.getElementById('info-status-amb')) {
+                    document.getElementById('info-status-amb').innerText = engineCfg.ambilight ? "Активен" : "Выкл";
+                    document.getElementById('info-status-amb').style.color = engineCfg.ambilight ? "var(--accent-color)" : "#fff";
+                }
+                if(document.getElementById('info-status-rpc')) {
+                    document.getElementById('info-status-rpc').innerText = engineCfg.discord ? "Связан" : "Выкл";
+                    document.getElementById('info-status-rpc').style.color = engineCfg.discord ? "#4feb4f" : "#fff";
+                }
+                if(document.getElementById('info-status-audio')) {
+                    document.getElementById('info-status-audio').innerText = audioCtx ? "WebAudio (Boost)" : "Native HTML5";
+                }
+                if(document.getElementById('info-stat-tracks')) {
+                    document.getElementById('info-stat-tracks').innerText = files.length;
+                }
+                if(document.getElementById('info-stat-vol')) {
+                    const currentVolPercent = Math.round(parseFloat(document.getElementById('v-slider').value) * 100);
+                    document.getElementById('info-stat-vol').innerText = currentVolPercent + "%";
+                }
+                if(document.getElementById('info-stat-lang')) {
+                    document.getElementById('info-stat-lang').innerText = currentLang.toUpperCase();
+                }
+                if(document.getElementById('info-stat-repeat')) {
+                    const rMap = ["Выкл", "Текущий трек", "Весь список"];
+                    document.getElementById('info-stat-repeat').innerText = rMap[repeatMode];
+                }
+            } catch(e) { }
+        }
+
+        function applyCfg() {
+            try {
+                const c = document.getElementById('cfg-color').value;
+                const s = document.getElementById('cfg-side').value;
+                const lang = document.getElementById('cfg-lang').value;
+                const seekVal = document.getElementById('cfg-seek').value;
+
+                document.documentElement.style.setProperty('--accent-color', c);
+                document.documentElement.style.setProperty('--accent-glow', c + '55');
+
+                const b = document.getElementById('sidebar');
+                b.classList.remove('hidden', 'right');
+                if (s === 'hide') b.classList.add('hidden'); else if (s === 'right') b.classList.add('right');
+
+                engineCfg.wheelVol = document.getElementById('cfg-wheel').checked;
+                engineCfg.autoPauseDevice = document.getElementById('cfg-device').checked;
+                engineCfg.forceFormatBypass = document.getElementById('cfg-format').checked;
+                engineCfg.seekStep = parseInt(seekVal);
+                engineCfg.alwaysControls = document.getElementById('cfg-always-controls').checked;
+                engineCfg.subBg = document.getElementById('cfg-sub-bg').checked;
+                engineCfg.subSize = document.getElementById('cfg-sub-size').value;
+                engineCfg.osd = document.getElementById('cfg-osd').checked;
+                engineCfg.ambilight = document.getElementById('cfg-ambilight').checked;
+                engineCfg.discord = document.getElementById('cfg-discord').checked;
+                engineCfg.discordStream = document.getElementById('cfg-discord-stream').checked;
+
+                document.getElementById('f-in').accept = engineCfg.forceFormatBypass ? "*/*" : "video/*,audio/*";
+
+                localStorage.setItem('l-color', c); localStorage.setItem('l-side', s); localStorage.setItem('l-wheel', engineCfg.wheelVol); localStorage.setItem('l-device', engineCfg.autoPauseDevice); localStorage.setItem('l-format', engineCfg.forceFormatBypass); localStorage.setItem('l-lang', lang); localStorage.setItem('l-seek', seekVal); localStorage.setItem('l-always', engineCfg.alwaysControls); localStorage.setItem('l-sub-bg', engineCfg.subBg); localStorage.setItem('l-sub-size', engineCfg.subSize);
+                localStorage.setItem('l-osd', engineCfg.osd); localStorage.setItem('l-amb', engineCfg.ambilight);
+                localStorage.setItem('l-discord', engineCfg.discord); localStorage.setItem('l-discord-stream', engineCfg.discordStream);
+
+                if (engineCfg.alwaysControls) { document.body.classList.add('always-show-controls'); } else { document.body.classList.remove('always-show-controls'); }
+                if (engineCfg.ambilight && !v.paused) { document.body.classList.add('ambilight-on'); if (!ambLoop) requestAnimationFrame(renderAmbilight); } else { document.body.classList.remove('ambilight-on'); }
+
+                let subStyleCSS = `video::-webkit-media-text-track-container { transition: transform 0.3s ease; transform: translateY(${engineCfg.alwaysControls ? '-20px' : '-110px'}) !important; } body.hide-cursor video::-webkit-media-text-track-container { transform: translateY(-20px) !important; } video::cue { color: #fff; font-size: ${engineCfg.subSize}; background-color: ${engineCfg.subBg ? 'rgba(0, 0, 0, 0.75)' : 'transparent'}; text-shadow: ${engineCfg.subBg ? 'none' : '0px 2px 6px rgba(0,0,0,0.9), 0px 0px 2px rgba(0,0,0,0.9)'}; padding: 0.2em 0.5em; border-radius: 6px; }`;
+                document.getElementById('custom-sub-style').innerHTML = subStyleCSS;
+
+                updateSelectLabels();
+                if (currentLang !== lang) setLanguage(lang);
+                updateDiscordRPC();
+                updateAboutTabStats();
+            } catch (err) {
+                sendErrorToMain("Apply Settings Error: " + err.message, err.stack);
+            }
+        }
+
+        function handleContextMenu(e) { e.preventDefault(); toggleSettings(); return false; }
+
+        window.onload = () => {
+            try {
+                const savedSidebarWidth = localStorage.getItem('l-sidebar-width'); if (savedSidebarWidth) document.documentElement.style.setProperty('--sidebar-width', savedSidebarWidth);
+
+                document.getElementById('cfg-color').value = localStorage.getItem('l-color') || '#f23636';
+                document.getElementById('cfg-wheel').checked = localStorage.getItem('l-wheel') !== 'false';
+                document.getElementById('cfg-device').checked = localStorage.getItem('l-device') !== 'false';
+                document.getElementById('cfg-format').checked = localStorage.getItem('l-format') === 'true';
+
+                let s = localStorage.getItem('l-side'); if (s) document.getElementById('cfg-side').value = s;
+                let l = localStorage.getItem('l-lang') || 'ru'; document.getElementById('cfg-lang').value = l;
+                let sk = localStorage.getItem('l-seek') || '10'; document.getElementById('cfg-seek').value = sk;
+
+                let alw = localStorage.getItem('l-always'); if (alw !== null) document.getElementById('cfg-always-controls').checked = (alw === 'true');
+                let sbg = localStorage.getItem('l-sub-bg'); if (sbg !== null) document.getElementById('cfg-sub-bg').checked = (sbg === 'true');
+                let ssz = localStorage.getItem('l-sub-size'); if (ssz !== null) document.getElementById('cfg-sub-size').value = ssz;
+
+                let bOsd = localStorage.getItem('l-osd'); if (bOsd !== null) document.getElementById('cfg-osd').checked = (bOsd === 'true');
+                let bAmb = localStorage.getItem('l-amb'); if (bAmb !== null) document.getElementById('cfg-ambilight').checked = (bAmb === 'true');
+
+                let bDisc = localStorage.getItem('l-discord'); if (bDisc !== null) document.getElementById('cfg-discord').checked = (bDisc === 'true');
+                let bDStr = localStorage.getItem('l-discord-stream'); if (bDStr !== null) document.getElementById('cfg-discord-stream').checked = (bDStr === 'true');
+
+                let savedKeys = localStorage.getItem('l-keybinds');
+                if (savedKeys) { try { let parsed = JSON.parse(savedKeys); keybinds = { ...keybinds, ...parsed }; } catch (e) { } }
+
+                let savedBkm = localStorage.getItem('l-bookmarks'); if (savedBkm) bookmarks = JSON.parse(savedBkm);
+                let fA = localStorage.getItem('l-fx-audio'); if (fA) { let a = JSON.parse(fA); document.querySelectorAll('.eq-sl').forEach((sl, i) => sl.value = a[i]); }
+
+                setLanguage(l); applyCfg(); changeVol(localStorage.getItem('l-vol') || 0.7);
+                updateAboutTabStats();
+            } catch (err) {
+                sendErrorToMain("Initialization Error: " + err.message, err.stack);
+            }
+        };
+
+        document.onmousemove = () => {
+            document.body.classList.remove('hide-cursor'); document.getElementById('controls').classList.remove('hide'); clearTimeout(idle);
+            idle = setTimeout(() => {
+                document.body.classList.add('hide-cursor');
+                if (!engineCfg.alwaysControls || document.fullscreenElement) {
+                    document.getElementById('controls').classList.add('hide');
+                }
+            }, 3000);
+        };
+
+        try {
+            const { ipcRenderer } = require('electron');
+            ipcRenderer.on('open-files', (e, paths) => {
+                let addedCount = 0;
+                paths.forEach(path => {
+                    const formattedPath = path.replace(/\\/g, '/'); const fileName = formattedPath.split('/').pop(); const fileUrl = `file:///${encodeURI(formattedPath)}`;
+                    if (!files.some(f => f.url === fileUrl)) { files.push({ name: fileName, url: fileUrl, addedAt: Date.now() + addedCount }); addedCount++; }
+                });
+                if (addedCount > 0) { if (sortMode !== 0) { sortMode--; toggleSort(); } else { renderPlaylist(document.getElementById('s-input').value); } play(files.length - addedCount); updateAboutTabStats(); }
+            });
+        } catch (e) { }</script>
+</body>
+</html>

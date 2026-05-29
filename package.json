@@ -1,0 +1,49 @@
+{
+  "name": "luna-play",
+  "version": "6.3.6",
+  "description": "Luna Play Engine Pro",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder"
+  },
+  "dependencies": {
+    "discord-rpc": "^4.0.1"
+  },
+  "devDependencies": {
+    "electron": "latest",
+    "electron-builder": "^26.8.1"
+  },
+  "build": {
+    "appId": "com.luna.play",
+    "productName": "Luna Play Engine",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico"
+    },
+    "fileAssociations": [
+      {
+        "ext": [
+          "mp4",
+          "mkv",
+          "avi",
+          "webm"
+        ],
+        "name": "Video File",
+        "role": "Viewer"
+      }
+    ]
+  }
+}
