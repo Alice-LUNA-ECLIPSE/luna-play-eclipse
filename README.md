@@ -20,6 +20,8 @@
 *(Загрузите сюда скриншоты вашего плеера)*
 >  (Главный экран) <img width="1273" height="724" alt="изображение" src="https://github.com/user-attachments/assets/63a1b532-a868-46aa-a8df-816a8fc61435" />
 
+_
+
 >  (Меню настроек "О ПО") <img width="538" height="438" alt="изображение" src="https://github.com/user-attachments/assets/06e32d44-d141-4cb6-8f8f-aee394938bfd" />
 
 
@@ -29,7 +31,7 @@
 
 1. Склонируйте репозиторий:
    ```bash
-   git clone [https://github.com/ВАШ_НИК/luna-play-eclipse.git](https://github.com/ВАШ_НИК/luna-play-eclipse.git)
+   git clone [https://github.com/Alice-LUNA-ECLIPSE/luna-play-eclipse.git](https://github.com/Alice-LUNA-ECLIPSE/luna-play-eclipse.git)
 
 2. Перейдите в папку с проектом:
     Bash
