@@ -1,6 +1,6 @@
 {
   "name": "luna-play",
-  "version": "6.3.6",
+  "version": "3.2.5",
   "description": "Luna Play Engine Pro",
   "main": "main.js",
   "scripts": {
@@ -45,5 +45,9 @@
         "role": "Viewer"
       }
     ]
+  },
+  "allowScripts": {
+    "electron@41.1.0": true,
+    "electron-winstaller@5.4.0": true
   }
 }
