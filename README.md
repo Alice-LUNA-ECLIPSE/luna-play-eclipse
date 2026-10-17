@@ -1,71 +1,65 @@
-# 🌙 LUNA PLAY ECLIPSE (v3.0)
+<div align="center">
+  <img src="assets/readme-banner.svg" alt="Luna Play Eclipse — настольный медиаплеер" width="100%">
+  <br>
+  <a href="README.md">Русский</a> · <a href="README.en.md">English</a>
+  <br><br>
+  <a href="https://github.com/Alice-LUNA-ECLIPSE/luna-play-eclipse/releases"><img alt="Releases" src="https://img.shields.io/badge/download-Releases-1267F1?style=for-the-badge&logo=github"></a>
+  <img alt="Windows" src="https://img.shields.io/badge/platform-Windows-0078D6?style=for-the-badge&logo=windows">
+  <img alt="Electron" src="https://img.shields.io/badge/Electron-desktop-47848F?style=for-the-badge&logo=electron">
+  <a href="LICENSE.txt"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-00AFAF?style=for-the-badge"></a>
+</div>
 
-![Version](https://img.shields.io/badge/version-3.0-blue.svg)
-![Electron](https://img.shields.io/badge/Electron-Latest-47848F.svg)
-![License](https://img.shields.io/badge/license-MIT-green.svg)
+<br>
 
-**Luna Play Eclipse** — это современный, легковесный и эстетичный кроссплатформенный медиаплеер, построенный на базе Electron и веб-технологий. Проект создавался с упором на минимализм, плавные UX-анимации и расширенные возможности обработки аудио и видео.
+**Luna Play Eclipse** — настольный медиаплеер для Windows с плейлистом, настройками воспроизведения и настраиваемым интерфейсом.
 
-## ✨ Ключевые особенности
+> Плеер использует встроенные возможности Chromium/Electron. Выбор файла не гарантирует его воспроизведение: поддержка зависит от контейнера, видеокодека и аудиокодека.
 
-* **Интерфейс Glassmorphism:** Современный дизайн настроек и плейлиста с матовым размытием и неоновыми акцентами.
-* **Ambilight Engine:** Динамическая фоновая подсветка, адаптирующаяся под цвета краев проигрываемого видео.
-* **WebAudio API Boost:** Встроенный аппаратный эквалайзер (10 полос) и возможность обхода системных ограничений громкости (усиление до 300%).
-* **Discord Rich Presence (RPC):** Автоматическая трансляция статуса воспроизведения и названия трека в ваш профиль Discord.
-* **Режим "Всеядности":** Поддержка большинства медиаформатов (MP4, MKV, AVI, WEBM, MP3 и др.) с возможностью игнорирования строгих проверок контейнеров.
-* **Продвинутый UX:** Плавные OSD-индикаторы, умные закладки на таймлайне, режим "Картинка в картинке" (PiP) и "Поверх всех окон".
-* **Управление кэшем:** Моментальная очистка сессионных данных IPC-моста прямо из интерфейса.
+## Возможности
 
 ## 📸 Скриншоты
 *(Загрузите сюда скриншоты вашего плеера)*
->  (Главный экран) <img width="1273" height="724" alt="изображение" src="https://github.com/user-attachments/assets/63a1b532-a868-46aa-a8df-816a8fc61435" />
+> Место для скриншота 1 (Главный экран)
+> Место для скриншота 2 (Меню настроек "О ПО")
 
-_
+## Скачать
 
->  (Меню настроек "О ПО") <img width="538" height="438" alt="изображение" src="https://github.com/user-attachments/assets/06e32d44-d141-4cb6-8f8f-aee394938bfd" />
+Откройте [раздел Releases](https://github.com/Alice-LUNA-ECLIPSE/luna-play-eclipse/releases) и скачайте установщик **Luna Play Engine Setup** с последнего стабильного выпуска. Запустите `.exe` и следуйте шагам установщика.
 
+В приложении пока нет автоматической установки обновлений: новые версии нужно скачивать со страницы Releases.
 
-## 🚀 Установка и запуск (Для разработчиков)
+## Запуск из исходного кода
 
-Для запуска проекта локально вам потребуется установленный [Node.js](https://nodejs.org/).
+Нужны Node.js и npm.
 
-1. Склонируйте репозиторий:
-   ```bash
-   git clone [https://github.com/Alice-LUNA-ECLIPSE/luna-play-eclipse.git](https://github.com/Alice-LUNA-ECLIPSE/luna-play-eclipse.git)
+```bash
+git clone https://github.com/Alice-LUNA-ECLIPSE/luna-play-eclipse.git
+cd luna-play-eclipse
+npm ci
+npm start
+```
 
-2. Перейдите в папку с проектом:
-    Bash
+## Сборка установщика Windows
 
-    cd luna-play-eclipse
+Сборка настраивается через `electron-builder` и создаёт установщик NSIS в `dist/`.
 
-3. Установите зависимости:
-    Bash
-
-    npm install
-
-4. Запустите плеер:
-    Bash
-
-    npm start
-
-5. 📦 Сборка приложения (Production)
-
-Чтобы скомпилировать .exe установщик для Windows (через NSIS):
-Bash
-
+```bash
+npm ci
 npm run dist
+```
 
-Готовый установщик появится в папке dist/.
-🛠 Технологический стек
+Файл `build/icon.ico` нужен для сборки и должен присутствовать в клоне репозитория.
 
-    Frontend: HTML5, CSS3 (Glassmorphism, Animations), Vanilla JavaScript
+## Форматы и ограничения
 
-    Backend / Core: Node.js, Electron
+Плеер принимает распространённые расширения видео и аудио, включая MP4, MKV, AVI, WebM, MOV, MP3, FLAC, WAV и OGG. Это список типов файлов, которые можно выбрать, а не обещание, что каждый файл декодируется. Фактическое воспроизведение определяется поддержкой кодеков в текущей сборке Electron. Отдельный FFmpeg в проект не встроен.
 
-    Интеграции: discord-rpc
+Файлы `.mka` обычно содержат только аудио; для них чёрное видеоокно ожидаемо. AVI и некоторые варианты MKV могут не воспроизводиться, если используемый кодек недоступен в Electron.
 
-📄 Лицензия
+## Публикация релизов
 
-Проект распространяется по лицензии MIT. Вы можете свободно использовать, изучать и модифицировать код. Подробнее в файле LICENSE.
+Пошаговая инструкция, правила версий и шаблон заметок находятся в [RELEASING.md](docs/RELEASING.md).
 
-Разработчик: Alice_LUNA_Eclipse| 2026
+## Лицензия
+
+Проект распространяется по лицензии [MIT](LICENSE.txt).
