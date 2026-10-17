@@ -25,6 +25,22 @@
 | Equalizer and volume boost up to 300% | Themes, Russian and English interface |
 | Optional Ambilight glow | Optional Discord Rich Presence |
 
+## Скриншоты
+
+![Main player window](assets/screenshots/player.png)
+
+![General](assets/screenshots/general.png)
+
+![Audio](assets/screenshots/audio.png)
+
+![Subtitles](assets/screenshots/subtitles.png)
+
+![Appearance](assets/screenshots/appearance.png)
+
+![Controls](assets/screenshots/controls.png)
+
+![About](assets/screenshots/about.png)
+
 ## Download
 
 Open [Releases](https://github.com/Alice-LUNA-ECLIPSE/luna-play-eclipse/releases), download the **Luna Play Engine Setup** installer from the latest stable release, and run the `.exe`.
